@@ -1,77 +1,89 @@
-function visualization(xmesh,tmesh,svals,avals,u,u_true,len_xmesh, len_tmesh,s_true_vec,s_true,k,J)
+function visualization(xmesh, tmesh, svals, avals, u, u_true, s_true, k, J, pausetime)
+  if ~exist('pausetime', 'var')
+    pausetime = 0
+  else
+    oldState = pause('on')
+  end
 
-tau=tmesh(2)-tmesh(1);
+  len_xmesh = length(xmesh);
+  len_tmesh = length(tmesh);
 
-s_ini = @(t) (s_true(1)-1)*t+1;
+  % Final moment
+  t_final = tmesh(end);
 
-% subplot(2,3,1)
-% surf(xmesh, tmesh, u)
-% title(' Numerical solution u_k (x,t) on square domain.')
-% xlabel('Distance x')
-% ylabel('Time t')
-% Below, we create an "image" plot, where u-values are translated to different colors.
+  % Time stepsize
+  tau=(tmesh(2)-tmesh(1));
 
-subplot(2,3,1)
-imagesc('XData',xmesh,'YData',tmesh,'CData',u)
-title(' Numerical solution u_k (x,t) on square domain.')
-xlabel('Distance x')
-ylabel('Time t')
-colorbar
-axis tight
-% Define "new" (non-rectangular) boundary curve
-s_new =@(t) interp1(tmesh, s_true_vec, t);
+  % spatial stepsize
+  h=(xmesh(2)-xmesh(1));
 
-% u(x,t) visualisation on a non-rectangular domain is based on 2d interpolation.
-[X, T] = meshgrid(xmesh, tmesh);
+  % Initial approach (TODO: use initial_setup)
+  s_ini = @(t) (s_true(t_final)-1)*t+1;
 
-% u:[0, max(s)] x [0, 1] \to R is defined by interpolation.
-uf = @(x,t) interp2(X, T, u_true, x/s_new(t), t, 'linear', NaN);
+  %% Surface plot of u on rectangular/square domain
+  % subplot(2,3,1)
+  % surf(xmesh, tmesh, u)
+  % title('Numerical solution u_k (x,t) on square domain.')
+  % xlabel('Distance x')
+  % ylabel('Time t')
 
-%TODO: Vectorize evaluation of previous function on grid.
-% Just requires careful interpretation of 1/boundary_values (defined below)
-% as a row-wise scaling vector.
+  %% Below, we create an "image" plot, where u-values are translated to different colors.
+  subplot(2,3,1)
+  imagesc('XData', xmesh, 'YData', tmesh, 'CData', u)
+  title('Numerical solution u_k (x,t) on square domain.')
+  xlabel('Distance x')
+  ylabel('Time t')
+  colorbar
+  axis tight
 
-% Define new grid on state vector's "native" domain.
-boundary_values = s_new(tmesh);
-x_new = linspace(0, max(boundary_values), len_xmesh);
+  % Create boundary function corresponding to svals
+  s_new = @(t) interp1(tmesh, svals, t);
 
-% Initialize and evaluate u_visual, the values on the "native" domain.
-u_visual = zeros(len_tmesh, len_xmesh);
-for i = 1:len_tmesh
+  % u(x,t) visualisation on a non-rectangular domain is based on 2d interpolation.
+  [X, T] = meshgrid(xmesh, tmesh);
+
+  % u:[0, max(s)] x [0, 1] \to R is defined by interpolation.
+  uf = @(x,t) interp2(X, T, u, x/s_new(t), t, 'linear', NaN);
+
+  % Define new grid on state vector's "native" domain.
+  x_new = linspace(0, max(svals), len_xmesh);
+
+  % Initialize and evaluate u_visual, the values on the "native" domain.
+  u_visual = zeros(len_tmesh, len_xmesh);
+  for i = 1:len_tmesh
     u_visual(i, :) = uf(x_new, tmesh(i));
-end
+  end
 
-% "image" plot of solution on its "native" domain.
+  %% "image" plot of solution on its "native" domain.
+  subplot(2,3,2)
+  imagesc('XData', x_new, 'YData', tmesh, 'CData', u_visual)
+  hold on
+  plot(s_true(tmesh), tmesh, '*', 'color', 'red')
+  plot(svals, tmesh, 'O', 'color', 'green')
+  plot(s_ini(tmesh), tmesh, '--', 'color', 'white')
+  title('True solution u(x,t), initial s(t), true s(t) and s_k(t).')
+  xlabel('Distance x')
+  ylabel('Time t')
+  colorbar
+  axis tight
 
-subplot(2,3,2)
-imagesc('XData',x_new, 'YData',tmesh, 'CData',u_visual)
-hold on
-plot(s_true(tmesh),tmesh,'*','color','red')
-plot(svals,tmesh,'O','color','green')
-plot(s_ini(tmesh),tmesh,'--','color','white')
-title(' True solution u(x,t), initial s(t), true s(t) and s_k(t).')
-xlabel('Distance x')
-ylabel('Time t')
-colorbar
-axis tight
-
-
-% Surface plot of solution on "native" domain.
-
-% subplot(2,3,4)
-% surf(x_new,tmesh,u_visual)
-% title('Surface graph of u_k (x,t)')
-% xlabel('Distance x')
-% ylabel('Time t')
+  %% Surface plot of solution on "native" domain.
+  % subplot(2,3,4)
+  % surf(x_new,tmesh,u_visual)
+  % title('Surface graph of u_k (x,t)')
+  % xlabel('Distance x')
+  % ylabel('Time t')
 
 
+  %% Create plot of functional values
+  subplot(2,3,4)
+  scatter(k, J(k), 'filled', 'MarkerFaceColor', 'black')
+  title('Cost Functional J')
+  xlabel('Iteration k')
+  ylabel('Functional Value J(k)')
 
-subplot(2,3,4)
-scatter(k,J(k),'filled','MarkerFaceColor','black')
-title('Cost Functional J')
-hold on
- 
-
-
-
+  if pausetime > 0
+    pause(pausetime)
+    pause(oldState)
+  end
 end
