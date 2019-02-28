@@ -8,7 +8,7 @@ function [grad]=grad_s(u,psi,psi_x,tmesh,s_der,svals,u_T,mu,u_x_S,psi_x_S,psi_t_
 grad=(2*(u_S-mu).*u_x_S+ psi_x_S.*s_der+psi_t_S-psi_S.*au_xx_S);
 grad(end)=(abs(u_S(end)-u_T(end)))^2+2*(svals(end)-s_star)-psi_T(end);
 % grad(1)=0;
-grad(end)=0;
+% grad(end)=0;
 grad=grad';
 end
 
