@@ -66,12 +66,12 @@ while abs(svals(end)-s_star)+h*norm(u_T-u_true_T)+tau*norm(u_S-mu)<1000
    grad=grad_s(u,psi,psi_x,tmesh,s_der,svals,u_T,mu,u_x_S,psi_x_S,psi_t_S,psi_t,psi_S,u_S,au_xx_S,s_star,psi_T);
    % grad=precond()'; % Preconditioning for s(t) gradient
    svals=svals-alpha*grad;
-   
-   
+
+
    avals=avals-0*grad_a(u,psi,tmesh);
-  
+
    J(k)=abs(svals(end)-s_star)+h*norm(u_T-u_true_T)+tau*norm(u_S-mu);
-  
+
    visualization(xmesh,tmesh,svals,avals,u,u_true,len_xmesh, len_tmesh,s_true_vec,s_true,k,J)
    pause(3)
 end

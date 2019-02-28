@@ -22,12 +22,7 @@ h = xmesh(3)-xmesh(2);
 tau=(tmesh(2)-tmesh(1));
 
 % Define the vector of derivatives for s values
-s_der=zeros(len_tmesh, 1);
-s_der(1)=(s_der(2)-s_der(1))/tau;
-s_der(len_tmesh(1))=(s_der(len_tmesh)-s_der(len_tmesh-1))/tau;
-for i=2:len_tmesh-1
-    s_der(i)=(s_der(i)-s_der(i-1))/tau;
-end
+s_der = deriv_est(svals, tmesh);
 
 % Interpolate s values to form s(t)
 s_ini = @(t) interp1(tmesh, svals, t);
@@ -132,7 +127,7 @@ function u = pdeSolver(xmesh, tmesh, af, sf, sder, uTrue0)
     function [c, f, s] = pde(x,t,~,DuDx)
         c = sf(t).^2;
         f = af(t)*DuDx;
-        s = sf(t)*sder(t)*x*DuDx; 
+        s = sf(t)*sder(t)*x*DuDx;
     end
 
     % Initial condition u(x,t_0)
@@ -163,6 +158,5 @@ function u = pdeSolver(xmesh, tmesh, af, sf, sder, uTrue0)
     % Note: This solution is defined on tmesh * xmesh.
     % TODO: Transform to function u(x,t) within this routine.
     u = sol(:, :, 1);
-    
 end
 %%% End Subfunctions
