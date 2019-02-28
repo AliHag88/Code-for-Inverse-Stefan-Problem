@@ -75,6 +75,3 @@ while abs(svals(end)-s_star)+h*norm(u_T-u_true_T)+tau*norm(u_S-mu)<1000
    visualization(xmesh,tmesh,svals,avals,u,u_true,len_xmesh, len_tmesh,s_true_vec,s_true,k,J)
    pause(3)
 end
-
-
- 
