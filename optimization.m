@@ -35,7 +35,6 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
   % Initial setup for solver (contains all parameters)
   % Uses global information to set mu_meas, w_meas, alpha
   % as well as initial approach s_ini and a_ini
-  %L=1; % Preconditioning 
   initial_setup;
 
   % Initialize svals and avals
@@ -51,7 +50,7 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
 
   % Main Optimization Loop
   while k < num_iterations
-    k = k + 1
+    k = k + 1;
 
     % Calculate solution of forward problem
     [au_xx_S, u_x_S, u_S, u_T, u] = ...
@@ -65,9 +64,8 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
     svals = svals - alpha * grad_s(u, psi, psi_x, tmesh, s_der, svals, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_t, psi_S, u_S, au_xx_S, s_star, psi_T);
     avals = avals - 0 * grad_a(u,psi,tmesh); % Note: avals not updated.
 
-
     % Precondition gradient
-    % grad=precond()'; % Preconditioning for s(t) gradient
+    % grad=precond(tmesh, grad, L); % Preconditioning for s(t) gradient
 
     % Update s_der
     s_der = deriv_est(svals);
@@ -82,11 +80,11 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
       visualization(xmesh, tmesh, svals, avals, u, u_true, s_true, k, J)
     end
 
-    # Check stopping criteria
+    % Check stopping criteria
     if J(k) < tolerance
       break
     end
 
   end
 
-end # optimization function
+end % optimization function
