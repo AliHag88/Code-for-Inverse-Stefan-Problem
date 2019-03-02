@@ -10,10 +10,10 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
 
   % Set default arguments
   if ~exist('len_xmesh', 'var')
-    len_xmesh = 100;
+    len_xmesh = 20;
   end
   if ~exist('len_tmesh', 'var')
-    len_tmesh = 100;
+    len_tmesh = 20;
   end
   if ~exist('tolerance', 'var')
     tolerance = 1e-5
@@ -22,7 +22,7 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
     num_iterations = 200
   end
   if ~exist('do_visualization', 'var')
-    do_visualization = false;
+    do_visualization = true;
   end
 
   % Set final moment (eliminate one "magic constant" used in subsequent locations.)
@@ -36,7 +36,9 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
   % Uses global information to set mu_meas, w_meas, alpha
   % as well as initial approach s_ini and a_ini
   initial_setup;
-
+  
+%   alpha=10^(-2); Should be deleted
+  
   % Initialize svals and avals
   svals = s_ini(tmesh);
   s_der = deriv_est(svals, tmesh);
@@ -63,17 +65,17 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
     % Take step in antigradient direction
     svals = svals - alpha * grad_s(u, psi, psi_x, tmesh, s_der, svals, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_t, psi_S, u_S, au_xx_S, s_star, psi_T);
     avals = avals - 0 * grad_a(u,psi,tmesh); % Note: avals not updated.
-
+ 
     % Precondition gradient
     % grad=precond(tmesh, grad, L); % Preconditioning for s(t) gradient
 
     % Update s_der
-    s_der = deriv_est(svals);
+    s_der = deriv_est(svals,tmesh);
 
     % Calculate functional
     J(k) = abs(svals(end) - s_star)^2 + ...
            trapz(xmesh, (u_T - w_meas(xmesh)).^2) + ...
-           trapz(tmesh, (u_S - mu_meas(tmesh)).^2);
+           trapz(tmesh, (u_S - mu_meas(tmesh)').^2);
 
     % Do visualization if selected
     if do_visualization

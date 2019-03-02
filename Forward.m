@@ -78,7 +78,7 @@ u_x(:, end) = u(:, end) - u(:, end - 1);
 % Scale all at once
 u_x = u_x / h;
 
-for i = 1:len_xmesh
+for i = 1:len_xmesh 
   u_x(:,i) = u_x(:,i) ./ svals(:);
 end
 
