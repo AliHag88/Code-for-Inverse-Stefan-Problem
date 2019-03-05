@@ -54,7 +54,7 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
 
     % Calculate solution of forward problem
     [au_xx_S, u_x_S, u_S, u_T, u] = ...
-      Forward(xmesh, tmesh, svals, avals, u_true_0);
+      Forward(xmesh, tmesh, svals, avals, g, u_true_0);
 
     % Calculate solution of adjoint problem
     [psi_T, psi_t, psi_t_S, psi_S, psi_x_S, psi_x, psi] = ...

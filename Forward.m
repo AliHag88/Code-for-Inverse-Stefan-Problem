@@ -1,10 +1,11 @@
-function [au_xx_S, u_x_S, u_S, u_T, u] = Forward(xmesh, tmesh, svals, avals, uInitial)
+function [au_xx_S, u_x_S, u_S, u_T, u] = Forward(xmesh, tmesh, svals, avals, g, uInitial)
   % Forward: Solve forward problem on given mesh with given data.
   % Input Arguments:
   %    - xmesh: Space discretization on [0,1]
   %    - tmesh: Time discretization
   %    - svals: Position of boundary at time grid points
   %    - avals: Diffusion coefficient a(t) at time grid points
+  %    - g: Function a(t) u_x(0, t) =: g(t)
   %    - uInitial: Function u(x,0)
   %
   % Output Arguments:
@@ -33,7 +34,7 @@ sder = @(t) interp1(tmesh, s_der, t);
 %%%
 %%% Calculate solution on rectangular domain
 %%%
-u = pdeSolver(xmesh, tmesh, af, s_ini, sder, uInitial);
+u = pdeSolver(xmesh, tmesh, af, s_ini, sder, g, uInitial);
 
 %%%
 %%% Transform solution to non-rectangular domain
@@ -75,7 +76,7 @@ u_x(:, end) = u(:, end) - u(:, end - 1);
 % Scale all at once
 u_x = u_x / h;
 
-for i = 1:len_xmesh 
+for i = 1:len_xmesh
   u_x(:,i) = u_x(:,i) ./ svals(:);
 end
 
@@ -113,7 +114,7 @@ end
 %%% End Main Function
 
 %%% Begin Subfunctions
-function u = pdeSolver(xmesh, tmesh, af, sf, sder, uTrue0)
+function u = pdeSolver(xmesh, tmesh, af, sf, sder, g, uTrue0)
     m = 0; % Symmetry of the problem. 0=slab (rectangular)
 
     % PDE to be solved is
@@ -140,9 +141,9 @@ function u = pdeSolver(xmesh, tmesh, af, sf, sder, uTrue0)
     % x=xr
     bc = @(xl, ul, xr, ur, t) ...
           deal(...
-                -sf(t), ... # pl
+                g(t)*sf(t), ... # pl
                 1, ... # ql
-                sder(t)*sf(t), ... # pr
+                -sder(t)*sf(t), ... # pr
                 1 ... # qr
               );
 

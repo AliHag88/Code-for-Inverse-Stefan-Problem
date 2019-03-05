@@ -14,9 +14,10 @@ u_true_0 = @(x) u_true(x, 0);
 
 boundary_values = s_new(tmesh);
 avals = ones(size(tmesh));
+g = @(t) zeros(size(t));
 
 [au_xx_S, u_x_S, u_S, u_T, u] = ...
-  Forward(xmesh, tmesh, boundary_values, avals, u_true_0);
+  Forward(xmesh, tmesh, boundary_values, avals, g, u_true_0);
 
 % u:[0, max(s)] x [0, 1] \to R is defined by interpolation.
 u_interp = @(x,t) interp2(X, T, u, x/s_new(t), t, 'linear', NaN);

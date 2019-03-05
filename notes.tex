@@ -1,0 +1,413 @@
+\documentclass[letterpaper, 10pt]{amsart}
+
+\usepackage[T1]{fontenc}
+\usepackage{graphicx, baskervald}
+\usepackage{todonotes}
+\usepackage{hyperref}
+\usepackage{geometry}
+
+\usepackage{matlab-prettifier}
+
+\usepackage[inline]{showlabels}
+
+\let\institute\address%
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\D}[2]{\frac{\partial{} #1}{\partial{} #2}}
+\newcommand{\bk}[1]{\left\{#1\right\}}
+\newcommand{\norm}[1]{\left\Vert #1\right\Vert}%chktex 1 ok (math-mode)
+\newcommand{\lnorm}[1]{\left\vert #1\right\vert}%chktex 1 ok (math-mode)
+
+\begin{document}
+
+\title{Implementation of ISP}
+\author{Ali Haqverdiyev \and Jonathan Goldfarb}
+\institute{Department of Mathematical Sciences\\Florida Institute of
+    Technology\\Melbourne, FL 32901}
+\subjclass[2010]{TBD}
+\date{\today}
+
+\begin{abstract}
+    TBD
+
+    \smallskip%
+    \noindent\textbf{\keywordsname.} TBD
+\end{abstract}
+\maketitle
+
+\tableofcontents{}
+
+\section{Introduction and Statement of Main Results}\label{sec:introduction}
+
+\subsection{Inverse Stefan Problem}\label{sec:inverse-stefan-problem}
+Consider the general one-phase Stefan problem:
+\begin{gather}
+    Lu \equiv {(a(t) b(x) u_x)}_x - u_{t} = f,~\text{in}~\Omega \label{eq:intro-pde}
+    \\
+    u(x,0) = \phi (x),~0 \leq x \leq s(0)=s_0 \label{eq:intro-init}
+    \\
+    a(t) b(0) u_x (0,t) = g(t),~0 \leq t \leq T \label{eq:pde-bound}
+    \\
+    a(t) b(s(t)) u_x (s(t),t) + \gamma (s(t),t) s'(t) = \chi (s(t),t),~0 \leq t \leq
+    T \label{eq:pde-stefan}
+    \\
+    u(s(t),t) = \mu (t),~0 \leq t \leq T, \label{eq:pde-freebound}
+    \intertext{where}
+    \Omega = \{(x,t): 0 < x < s(t),~0 < t \leq T\}\label{eq:pde-domain-defn}
+\end{gather}
+where $a$, $b$, $f$, $\phi$, $g$, $\gamma$, $\chi$, $\mu$ are given functions.
+Assume now that $a$ is unknown; in order to find $a$, along with $u$ and $s$, we must have additional information.
+Assume that we are able to measure the temperature on our domain and the position of the free boundary at the final moment $T$.
+\begin{equation}
+    u(x,T) = w(x),~ 0 \leq x \leq s(T) = s_*.\label{eq:pde-finaltemp}
+\end{equation}
+Under these conditions, we are required to solve an \emph{inverse} Stefan problem (ISP): find a tuple
+\def\controlvarsWithArgs{s(t), a(t)}
+\def\controlvars{s, a}
+\def\controlvarsWithDelta{{\Delta s}, {\Delta a}}
+\[
+    \bk{
+        u(x,t), \controlvarsWithArgs
+    }
+\]
+that satisfy conditions~\eqref{eq:intro-pde}--\eqref{eq:pde-finaltemp}.
+ISP is not well posed in the sense of Hadamard: the solution may not exist; if it exists, it may not be unique, and in general it does not exhibit continuous dependence on the data.
+The main methods available for ISP are based on a variational formulation, Frechet differentiability, and iterative gradient methods.
+We cite recent papers~\cite{abdulla13,abdulla15} and the monograph~\cite{goldman97} for a list of references.
+The established variational methods in earlier works fail in general to address two issues:
+\begin{itemize}
+    \item The solution of ISP does not depend continuously on the phase transition temperature $\mu(t)$ from~\eqref{eq:pde-freebound}.
+    A small perturbation of the phase transition temperature may imply significant change of the solution to the inverse Stefan problem.
+    \item In the existing formulation, at each step of the iterative method a Stefan problem must be solved (that is, for instance, the unknown heat flux $g$ is given, and the corresponding $u$ and $s$ are calculated) which incurs a high computational cost.
+\end{itemize}
+
+A new method developed in~\cite{abdulla13,abdulla15} addresses both issues with a new variational formulation.
+The key insight is that the free boundary problem has a similar nature to an inverse problem, so putting them into the same framework gives a conceptually clear formulation of the problem; proving existence, approximation, and differentiability is a resulting challenge.
+Existence of the optimal control and the convergence of the sequence of discrete
+optimal control problems to the continuous optimal control problem was proved
+in~\cite{abdulla13,abdulla15}.
+In~\cite{abdulla16,abdulla17}, Frechet differentiability of the new variational
+formulation was developed, and a full result showing Frechet differentiability
+and the form of the Frechet differential
+with respect to the free boundary, sources, and coefficients were proven.
+Our goal in this work is to document the implementation in MATLAB using the built-in PDEPE solver.
+
+
+\subsection{Forward Problem for ISP}\label{sec:forward-problem}
+We will consider the problem~\eqref{eq:intro-pde}--\eqref{eq:pde-stefan} where $(\controlvars{}) \in V_R$ is fixed, and
+\begin{align}
+  V_R & =\Big\{
+        v=(\controlvars{}) \in H, \lnorm{v}_H \leq R;
+        ~s(0) = s_0,
+        ~g(0) = a(0)b(0) \phi'(0),
+        ~a_0 \leq a(t)\nonumber
+  \\
+      & \qquad
+        ~\chi(s_{0},0) = \phi'(s_{0})a(0)b(s_0) + \gamma(s_0, 0)s'(0),
+        ~0 < \delta \leq s(t)
+        \Big\},\label{eq:control-set}
+\end{align}
+where $\beta_0, \beta_1, \beta_2 \geq 0$ and $a_0, \delta, R > 0$ are given, and
+\def\acontrolspace{W_2^1}
+\def\scontrolspace{W_2^2}
+\begin{gather*}
+  H := \acontrolspace(0,T)
+  \times \scontrolspace(0,T)
+    \\
+    \norm{v}_H := \max\Big(
+    \norm{a}_{\acontrolspace(0,T)},
+    \norm{s}_{\scontrolspace(0,T)}
+    \Big)
+  \end{gather*}
+  Define
+  \let\l\ell%
+\[
+  D := \bk{(x,t) : 0\leq x\leq \l,~ 0\leq t\leq T},
+\]
+where $l = l(R) > 0$ is chosen such that for any control $v\in V_R$, its component
+$s$ satisfies $s(t)\leq l$.
+For a given control vector $v = (\controlvars{}) \in V_R$ transform the domain $\Omega$ to the cylindrical domain $Q_T$
+by the change of variables $y = x / s(t)$.
+Let $d = d(x, t)$, $(x, t) \in \Omega$ stand for any of $u$, $b$, $f$, $\gamma$, $\chi$, define the function $\tilde{d}$ by
+\begin{gather*}
+  \tilde{d}(x,t) = d\big(x s(t), t\big),~
+  \tilde{b}(x) = b(x s(t)),~\text{and}~
+  \tilde{\phi}(x) = \phi\big( x s_0\big)
+\end{gather*}
+\def\utilde{\tilde{u}}
+The transformed function $\utilde$ is a \emph{pointwise a.e.} solution of the Neumann problem
+\begin{gather}
+  \frac{a}{s^2}\big(\tilde{b} \utilde_y\big)_y + \frac{y s'}{s} \utilde_y - \utilde_{t} = \tilde{f}, ~\text{in}~Q_T\label{eq:tform-pde}
+  \\
+  \utilde(x,0) = \tilde{\phi}(x), ~0 \leq x \leq 1 \label{eq:tform-iv}
+  \\
+  a(t) b(0) \utilde_y(0, t) = g(t)s(t), ~0 \leq t \leq T   \label{eq:tform-lbdy}
+  \\
+  a(t) b(1) \utilde_y(1, t) = \tilde{\chi}(1, t) s(t) - \tilde{\gamma}(1,t)s'(t)s(t), ~0 \leq t \leq T \label{eq:tform-rbdy}
+\end{gather}
+
+
+\subsection{MATLAB Implementation of Forward Problem}
+The built-in MATLAB PDE solver, \verb+pdepe+, solves parabolic-elliptic problems in one space dimension.
+In particular, it uses a method-of-lines technique as a differential-algebraic equation solver applied to problems of the form
+\begin{gather}
+  c\left(x,t,u,\D{u}{x}\right) \D{u}{t}
+  = x^{-m} \D{}{x} \left( x^m F\left(x,t,u,\D{u}{x} \right)\right)
+  + d\left( x,t,u,\D{u}{x}\right)\label{eq:matlab-pde}
+  \intertext{for}
+  a \leq x \leq b,\quad t_0 \leq t \leq t_f
+  \intertext{where $m=0,1,2$ is fixed, $c$ is a diagonal matrix of size $n\times n$, where there are $n$ components in $u$.
+    There must be at least one parabolic equation, which corresponds to the condition of at least one component of $c$ being positive.
+    The solution components satisfy}
+  u(x,t_0) = u_0(x)\label{eq:matlab-ic}
+  \intertext{and boundary conditions of the form}
+  p(x,t,u)
+  + q(x,t) F\left(x,t,u,\D{u}{x} \right)\Big\vert_{x=a,b}
+  = 0\label{eq:matlab-bc}
+\end{gather}
+In particular, the function $F$ appearing in the boundary condition is the same as the flux term in the PDE.
+In the MATLAB implementation, the method \verb+Forward+ is intended to produce a function $u(x,t)$ by computing $\utilde(y,t)$ and returning $u(x,t) = \utilde(x/s(t),t)$.
+The subfunction \verb+pdeSolver+ handles the conversion of problems of the form~\eqref{eq:tform-pde}--\eqref{eq:tform-rbdy} to the form that the MATLAB solver requires.
+
+We first write system~\eqref{eq:tform-pde}--\eqref{eq:tform-rbdy} in the form
+\begin{gather}
+  % a \big(\tilde{b} \utilde_y\big)_y
+  % + s y s' \utilde_y
+  % - s^2\utilde_{t}
+  % = s^2 \tilde{f}, ~\text{in}~Q_T
+  % \\
+  % \intertext{Or, multiplying the first equation through by $-1$,}
+  s^2 \utilde_t = a \big(\tilde{b} \utilde_y\big)_y
+  + s y s' \utilde_y
+  - s^2 \tilde{f}, ~\text{in}~Q_T=:(0,1) \times (0,T)
+  \\
+  \utilde(x,0) = \tilde{\phi}(x), ~0 \leq x \leq 1
+  \\
+  a(t) b(0) \utilde_y(0, t) = g(t)s(t), ~0 \leq t \leq T
+  \\
+  a(t) \tilde{b}(1) \utilde_y(1, t)
+  = \tilde{\chi}(1, t) s(t)
+  - \tilde{\gamma}(1,t)s'(t)s(t), ~0 \leq t \leq T
+\end{gather}
+
+Evidently, we must take $a=0$, $b=1$, $t_0=0$, $t_f = T$, and $m=0$; % , giving
+% \[
+% c\left(x,t,u,\D{u}{x}\right) \D{u}{t} = \D{}{x} \left( F\left(x,t,u,\D{u}{x} \right)\right) + d\left( x,t,u,\D{u}{x}\right)
+% \]
+% By
+then, identifying the diffusion coefficient between the two problems, we observe that
+\[
+  F(x, t, u, p) := a(t) \tilde{b}(x) p
+\]
+and by considering the time derivative, evidently
+\[
+  c(x,t,u,p) := s^2(t)
+\]
+and lastly,
+\[
+  d(x,t,u,p) := s(t) \big(s'(t) x p - s(t) \tilde{f}(x,t)\big)
+\]
+The initial data should be taken as $u_0(x) = \tilde{\phi}(x) = \phi(x s(t))$, and the boundary conditions take the form
+\begin{gather*}
+  a(t)\tilde{b}(0) \utilde_y(0,t) \equiv F(0, t, \utilde, \utilde_y)
+  = p(0,t,\utilde):=g(t) s(t),
+  \\
+  q(0,t)=1
+  \\
+  a(t)\tilde{b}(1) \utilde_y(1,t) \equiv F(1, t, \utilde, \utilde_y)
+  = p(1,t,\utilde)
+  := s(t)\left(
+    \tilde{\chi}(1,t) - \tilde{\gamma}(1,t) s'(t)
+    \right)
+\end{gather*}
+
+\subsection{Formulation for Reduced Model}
+Consider the problem~\eqref{eq:tform-pde}--\eqref{eq:tform-rbdy} with $\gamma\equiv 1$, $\chi \equiv 0$, and $b \equiv 1$.
+Then the equations above simplify to give
+\begin{gather}
+  % a \big(\tilde{b} \utilde_y\big)_y
+  % + s y s' \utilde_y
+  % - s^2\utilde_{t}
+  % = s^2 \tilde{f}, ~\text{in}~Q_T
+  % \\
+  % \intertext{Or, multiplying the first equation through by $-1$,}
+  s^2 \utilde_t = a \big( \utilde_y\big)_y
+  + s y s' \utilde_y
+  - s^2 \tilde{f}, ~\text{in}~Q_T
+  \\
+  \utilde(y,0) = \tilde{\phi}(y), ~0 \leq x \leq 1
+  \\
+  a(t) \utilde_y(0, t) = g(t)s(t), ~0 \leq t \leq T
+  \\
+  a(t) \utilde_y(1, t)
+  = - s'(t)s(t), ~0 \leq t \leq T
+\end{gather}
+and the mapping from the notation in our paper to the notation preferred by MATLAB becomes
+\begin{gather*}
+  F(x, t, u, p) := a(t) p
+  \\
+  c(x,t,u,p) := s^2(t)
+  \\
+  d(x,t,u,p) := s(t) \big(s'(t) x p - s(t)\tilde{f}(x,t)\big)
+\intertext{The initial data should be taken as $u_0(x) = \tilde{\phi}(x) = \phi(x s(t))$, and the boundary conditions take the form}
+  a(t) \utilde_y(0,t) \equiv F(0, t, \utilde, \utilde_y)
+  = p(0,t,\utilde)
+  :=g(t) s(t),
+  \\
+  a(t) \utilde_y(1,t) \equiv F(1, t, \utilde, \utilde_y)
+  = p(1,t,\utilde)
+  := -s(t) s'(t)
+  \intertext{and}
+  q(x,t) \equiv 1
+\end{gather*}
+
+Under the additional assumption that the sources $f \equiv 0$, the mapping simplifies further to
+\begin{gather*}
+  F(x, t, u, p) := a(t) p
+  \\
+  c(x,t,u,p) := s^2(t)
+  \\
+  d(x,t,u,p) := s(t) s'(t) x p
+\end{gather*}
+The boundary conditions take the same form with the updated definition of $F$.
+This is the model implemented in \verb+Forward.m+, included in section~\ref{sec:code-listing-forward}.
+
+\subsection{Optimal Control Problem and Gradient-Based Approach}\label{sec:statement-of-main-results}
+Consider the minimization of the functional
+\def\J{\mathcal{J}}
+\begin{equation}
+  \J(v)
+  = \beta_0 \int_0^{s(T)} \lnorm{u(x, T; v) - w(x)}^2\,dx
+  + \beta_1 \int_0^T \lnorm{u(s(t), t; v) - \mu(t)}^2\,dt
+  + \beta_2 \lnorm{s(T) - s_*}^2\label{eq:functional}
+\end{equation}
+on the control set~\eqref{eq:control-set}.
+\def\I{\mathcal{I}}
+The formulated optimal control problem~\eqref{eq:functional},~\eqref{eq:control-set},~\eqref{eq:tform-pde}--\eqref{eq:tform-rbdy} will be called Problem $\I$.
+
+% The main results are established under the assumptions
+% \begin{gather}
+%     0 < a_0 \leq a(x,t)~\text{in}~D\label{eq:a-ellipticity-cond}
+%     \\
+%     a,b_x,b \in \coeffspace(D)\label{eq:datacond-coeff}
+%     \\
+%     w \in \ivspace(0,\l),\quad \phi \in \ivspace(0, s_{0}),\label{eq:datacond-iv}
+%     \\
+%     \chi,\gamma \in \chigammaspace(D)\label{eq:datacond-4}
+%     \\
+%     \mu \in \muspace[0,T]\label{eq:datacond-mu}
+% \end{gather}
+% Given a control vector $v \in V_R$, under the conditions~\eqref{eq:a-ellipticity-cond}--\eqref{eq:datacond-mu} there exists a unique pointwise a.e.\ solution $u \in W_2^{2,1}(\Omega)$ of the Neumann problem~\eqref{eq:intro-pde}--\eqref{eq:pde-stefan} such that the transformed function $\utilde(y,t) = u(y s(t),t)$ belongs to $\solnspace(Q_T)$ and solves~\eqref{eq:tform-pde}--\eqref{eq:tform-rbdy} (\cite{solonnikov64}; see Lemma~\ref{lem:j-well-defined} below.)
+\begin{definition}\label{defn:adjoint}
+  For given $v$ and $u = u(x, t; v)$, $\psi$ is a solution to the adjoint problem if
+  \begin{gather}
+    L^{*} \psi := \big(a b \psi_x\big)_x + \psi_t = 0,\quad\text{in}~\Omega \label{eq:adj-pde}
+    \\
+    \psi(x, T) = 2\beta_0(u(x, T) - w(x)),~0 \leq x \leq s(T) \label{eq:adj-finalmoment}
+    \\
+    b(0)a(t)\psi_x(0, t) =0,~0 \leq t \leq T \label{eq:adj-robin-fixed}
+    \\
+    \Big[a b \psi_x - s'\psi - 2\beta_1(u - \mu)\Big]_{x=s(t)}=0, ~0 \leq t \leq T \label{eq:adj-robin-free}
+  \end{gather}
+\end{definition}
+
+
+\begin{theorem}\label{thm:gradient-result}
+  Problem $\I$ has a solution, and the functional $\J(v)$ is differentiable in the sense of Frechet, and the first variation is
+  % \begin{gather}
+  %   \left\langle \J'(v),\Delta v \right\rangle_H
+  %   = \int_0^T \Big[2\beta_1\big(u - \mu\big)u_x + \psi \big(\chi_x - \gamma_x s'  - a (b u_x)_x \big)\Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
+  %   \\
+  %   +
+  %   \left[\beta_0\lnorm{u(s(T),T) - w(s(T))}^2 + 2 \beta_2 (s(T) - s_*)\right] {\Delta s}(T) \nonumber
+  %   \\
+  %   + \int_0^T {\Delta a} \int_0^{s(t)} {(b u_x)}_x \psi \,dx \,dt
+  %   - \int_0^T \big[\psi \gamma\big]_{x=s(t)} {\Delta s}'(t) \,dt \nonumber
+  %   \\
+  %   - \int_0^T {\Delta a} \left[ [ b u_x\psi]_{x=s(t)} + [b u_x \psi]_{x=0}\right] \,dt\label{eq:gradient-full}
+  % \end{gather}
+  \begin{gather}
+    \left\langle \J'(v),\Delta v \right\rangle_H
+    = \int_0^T \Big[2\beta_1\big(u - \mu\big)u_x + \psi \big(\chi_x - \gamma_x s'  - a (b u_x)_x \big)\Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
+    \\
+    +
+    \left[\beta_0\lnorm{u(s(T),T) - w(s(T))}^2 + 2 \beta_2 (s(T) - s_*)\right] {\Delta s}(T) 
+    - \int_0^T \big[\psi \gamma\big]_{x=s(t)} {\Delta s}'(t) \,dt \nonumber
+    \\
+    +\int_0^T {\Delta a} \left[ \int_0^{s(t)} {(b u_x)}_x \psi \,dx - [b u_x\psi]_{x=s(t)} - [b u_x \psi]_{x=0}\right] \,dt\label{eq:gradient-full}
+  \end{gather}
+  where $\J'(v) \in H'$ is the Frechet derivative, $\langle \cdot,\cdot \rangle_H$ is a pairing between $H$ and its dual $H'$, $\psi$ is a solution to the adjoint problem in the sense of definition~\ref{defn:adjoint}, and $\delta v = (\controlvarsWithDelta{})$ is a variation of the control vector $v \in V_R$ such that $v + \delta v \in V_R$.
+\end{theorem}
+
+\subsection{MATLAB Implementation of Adjoint Problem}
+
+To implement the adjoint problem, we first change variable as $\bar{t} = T-t$ to derive
+\begin{gather}
+  L^{*} \psi := \big(a(T-\bar{t}) b(x) \psi_x\big)_x - \psi_{\bar{t}} = 0,\quad\text{in}~\Omega
+  \\
+  \psi(x, T) = 2\beta_0(u(x, T) - w(x)),~0 \leq x \leq s(T)
+  \\
+  b(0)a(\bar{t}-T)\psi_x(0, \bar{t}) =0,~0 \leq \bar{t} \leq T
+  \\
+  a(T-\bar{t}) b(s(T-\bar{t})) \psi_x(x,\bar{t})
+  - s'(T-\bar{t})\psi(x,\bar{t})
+  \\
+  - 2\beta_1\big(
+  u(s(T-\bar{t}),T-\bar{t}) - \mu(T-\bar{t})\big)=0, ~0 \leq t \leq T
+\end{gather}
+
+\subsection{Model Problem \#1}
+As a model problem, we will take~\eqref{eq:intro-pde}--\eqref{eq:pde-stefan} with $b\equiv 1$, $\chi \equiv 0$, and $\gamma \equiv 1$:
+\begin{gather}
+  Lu \equiv {(a(t) u_x)}_x - u_{t} = f,~\text{in}~\Omega
+  \\
+  u(x,0) = \phi (x),~0 \leq x \leq s(0) = s_0
+  \\
+  a(t) u_x (0,t) = g(t),~0 \leq t \leq T
+  \\
+  a(t) u_x (s(t),t) + s'(t) = 0,~0 \leq t \leq
+  T
+\end{gather}
+In this case, the adjoint problem~\eqref{eq:adj-pde}--\eqref{eq:adj-robin-free} then takes the form
+\begin{gather}
+  L^{*} \psi := \big(a \psi_x\big)_x + \psi_t = 0,\quad\text{in}~\Omega
+  \\
+  \psi(x, T) = 2\beta_0(u(x, T) - w(x)),~0 \leq x \leq s(T)
+  \\
+  a(t)\psi_x(0, t) =0,~0 \leq t \leq T
+  \\
+  \Big[a \psi_x - s'\psi - 2\beta_1(u - \mu)\Big]_{x=s(t)}=0, ~0 \leq t \leq T
+\end{gather}
+and the gradient is
+\begin{gather}
+  \left\langle \J'(v),\Delta v \right\rangle_H
+  = \int_0^T \Big[2\beta_1\big(u - \mu\big)u_x - a \psi u_{xx} \Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
+  \\
+  +
+  \left[\beta_0\lnorm{u(s(T),T) - w(s(T))}^2 + 2 \beta_2 (s(T) - s_*)\right] {\Delta s}(T)
+  - \int_0^T \psi \big\vert_{x=s(t)} {\Delta s}'(t) \,dt\nonumber
+  \\
+  + \int_0^T {\Delta a} \left[
+    \int_0^{s(t)}  u_{xx} \psi \,dx
+    - [u_x \psi]_{x=0}
+    - [ u_x\psi]_{x=s(t)}
+  \right]\,dt
+\end{gather}
+
+%\subsection*{Acknowledgement}
+
+\appendix
+\section{Code Listings}
+\subsection{Forward}\label{sec:code-listing-forward}
+\lstinputlisting[style=MATLAB-editor]{Forward.m}
+
+\bibliographystyle{siam}
+\bibliography{refs}
+
+\end{document}
