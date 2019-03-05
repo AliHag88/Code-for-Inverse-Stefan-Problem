@@ -1,4 +1,4 @@
-function visualization(xmesh, tmesh, svals, avals, u, u_true, s_true, k, J, pausetime)
+function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)%#ok<INUSL>
   if ~exist('pausetime', 'var')
     pausetime = 0;
   else
@@ -8,12 +8,12 @@ function visualization(xmesh, tmesh, svals, avals, u, u_true, s_true, k, J, paus
   len_xmesh = length(xmesh);
   len_tmesh = length(tmesh);
 
-  % Final moment
-  t_final = tmesh(end);
-
-  % Initial approach (TODO: use initial_setup)
-  s_ini = @(t) (s_true(t_final)-1)*t+1;
-
+  % Grab analytic data from true_solution
+  [~, ~, ~, ~, ~, s_true, ~, ~] = true_solution(tmesh);
+  
+  % Grab initial data from initial_setup
+  [~, ~, ~, ~, ~, ~, s_ini] = initial_setup(tmesh);
+  
   %% Surface plot of u on rectangular/square domain
   % subplot(2,3,1)
   % surf(xmesh, tmesh, u)

@@ -29,17 +29,15 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
   t_final = 1;
 
   % Discretization for both for forward and adjoint problem
-  xmesh = linspace(0,1,len_xmesh);  % Space discretization
-  tmesh = linspace(0,t_final,len_tmesh); % Time discretization
+  xmesh = linspace(0,1,len_xmesh);  % Space discretization (row)
+  tmesh = linspace(0,t_final,len_tmesh)'; % Time discretization (column)
 
-  % Initial setup for solver (contains all parameters)
-  % Uses global information to set mu_meas, w_meas, alpha
-  % as well as initial approach s_ini and a_ini
-  initial_setup;
-  
+  % Initial setup for solver (all tunable parameters should be set here)
+  [step_size, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = initial_setup(tmesh);
+
   % Initialize svals and avals
   svals = s_ini(tmesh);
-  s_der = deriv_est(svals, tmesh);
+  s_der = est_deriv(svals, tmesh);
   avals = a_ini(tmesh);
 
   % Vector of cost functional values
@@ -57,41 +55,46 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
       Forward(xmesh, tmesh, svals, avals, g, u_true_0);
 
     % Calculate solution of adjoint problem
-    [psi_T, psi_t, psi_t_S, psi_S, psi_x_S, psi_x, psi] = ...
+    [psi_t_S, psi_x_S, psi_S, psi_T, psi] = ...
       Adjoint(xmesh, tmesh, svals, avals, u_T, w_meas, s_der, u_S, mu_meas);
 
     % Take step in antigradient direction
-    s_update = grad_s(u, psi, psi_x, tmesh, s_der, svals, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_t, psi_S, u_S, au_xx_S, s_star, psi_T);
+    s_update = grad_s(tmesh, s_der, svals, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star, psi_T);
     s_update = s_update / norm(s_update);
+
+    fprintf('k: %d, size(svals):', k);
+    size(svals)
+    fprintf('size(s_update):');
+    size(s_update)
     
     svals = svals - step_size * s_update;
-    
+
     avals = avals - 0 * grad_a(u,psi,tmesh); % Note: avals not updated.
- 
+
     % Precondition gradient
     % grad=precond(tmesh, grad, L); % Preconditioning for s(t) gradient
 
     % Update s_der
-    s_der = deriv_est(svals, tmesh);
+    s_der = est_deriv(svals, tmesh);
 
     % Calculate functional
     J(k) = abs(svals(end) - s_star)^2 + ...
            trapz(xmesh, (u_T - w_meas(xmesh)).^2) + ...
-           trapz(tmesh, (u_S - mu_meas(tmesh)').^2);
-    
-    disp(J(k))
-    disp(norm(svals - s_true(tmesh)))
+           trapz(tmesh, (u_S - mu_meas(tmesh)).^2);
+
     
     % Do visualization if selected
     if do_visualization
-      visualization(xmesh, tmesh, svals, avals, u, u_true, s_true, k, J)
+        pause_time = 1; % Second
+        visualization(xmesh, tmesh, svals, avals, u, k, J, pause_time)
     end
 
     % Check stopping criteria
     if J(k) < tolerance
-      break
+        J = J(1:k);
+        break
     end
 
-  end
+  end % End main loop
 
 end % optimization function

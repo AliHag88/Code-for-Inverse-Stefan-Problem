@@ -12,7 +12,7 @@ function [au_xx_S, u_x_S, u_S, u_T, u] = Forward(xmesh, tmesh, svals, avals, g, 
   %    - au_xx_S: Vector of trace values (a u_x)_x on x=s(t)
   %    - u_x_S: Vector of trace values u_x on x=s(t)
   %    - u_S: Vector of trace values u on x=s(t)
-  %    - u_T: Vector of trace values u on t=T
+  %    - u_T: Vector of trace values u on t=T after transformation x/s(t)
   %    - u: Matrix of output values. Rows are time-levels, columns are space-levels
 
 %%%
@@ -20,10 +20,10 @@ function [au_xx_S, u_x_S, u_S, u_T, u] = Forward(xmesh, tmesh, svals, avals, g, 
 %%%
 
 % Define the vector of derivatives for s values
-s_der = deriv_est(svals, tmesh);
+s_der = est_deriv(svals, tmesh);
 
 % Interpolate s values to form s(t)
-s_ini = @(t) interp1(tmesh, svals, t);
+s_current = @(t) interp1(tmesh, svals, t);
 
 % Interpolate a values to form a(t)
 af = @(t) interp1(tmesh, avals, t);
@@ -32,83 +32,33 @@ af = @(t) interp1(tmesh, avals, t);
 sder = @(t) interp1(tmesh, s_der, t);
 
 %%%
-%%% Calculate solution on rectangular domain
+%%% Calculate solution u(y,t) on rectangular domain
 %%%
-u = pdeSolver(xmesh, tmesh, af, s_ini, sder, g, uInitial);
-
-%%%
-%%% Transform solution to non-rectangular domain
-%%%
-% Define "new" (non-rectangular) boundary curve
-% s_new =@(t) interp1(tmesh, svals, t);
-
-% u(x,t) visualisation on a non-rectangular domain is based on 2d interpolation.
-% [X, T] = meshgrid(xmesh, tmesh);
-
-% u:[0, max(s)] x [0, 1] \to R is defined by interpolation.
-% uf = @(x,t) interp2(X, T, u, x/s_new(t), t, 'linear', NaN);
+u = pdeSolver(xmesh, tmesh, af, s_current, sder, g, uInitial);
 
 %%%
 %%% Calculate values of solution at requested locations
 %%%
 
-%% Values Of u(x,t) at t=T
+%% Values of u(y,t) at t=T. Note that these values are not transformed to
+% the non-rectangular domain.
 u_T = u(end, :);
 
-%% Values of u(x,t) at s(t)
+%% Values of u(y,t) at y=1, which is u(s(t), t).
 u_S = u(:, end);
 
-% Number of space grid points
-len_xmesh = length(xmesh);
-
 % spatial stepsize
-h = xmesh(3)-xmesh(2);
+h = xmesh(2) - xmesh(1);
 
-%% u_x (x,t) matrix of derivatives of u(x,t)
-u_x = zeros(size(u));
+% In order to compute u_x(x,t) from the output from pdeSolver, which
+% corresponds to \tilde{u}(y,t)=psi(ys(t),t), we need to return
+% psi_x(s(t),t) = \tilde{u}_y(1,t)/s(t) = u_x(:, end) ./ svals
+u_x = est_x_partial(u, h);
+u_x_S = u_x(:, end) ./ svals;
 
-% Use forward difference for internal points
-u_x(:, 1:end-1) = u(:, 2:end) - u(:, 1:end-1);
-
-% Use backward difference at the right-hand side
-u_x(:, end) = u(:, end) - u(:, end - 1);
-
-% Scale all at once
-u_x = u_x / h;
-
-for i = 1:len_xmesh
-  u_x(:,i) = u_x(:,i) ./ svals(:);
-end
-
-
-% Values of u_x (x,t) at s(t)
-u_x_S = u_x(:, end);
-
-%% Values of a(t)u_x(x,t)
-au_x = zeros(size(u));
-for i = 1:len_xmesh
-  au_x(:, i) = avals(:) .* u_x(:, i);
-end
-
-
-%% values of (a(t)u_x(x,t))_x
-au_xx = zeros(size(u));
-
-% Calculate values inside domain using forward difference
-au_xx(:, 1:end-1) = au_x(:, 2:end) - au_x(:, 1:end-1);
-
-% Calculate values on right-hand side of domain using backward difference
-au_xx(:, end) = au_xx(:, end-1);
-
-% Scale all differences at once
-au_xx = au_xx / h;
-
-for i = 1:len_xmesh
-  au_xx(:,i) = au_xx(:,i) ./ ((svals(:)).^2);
-end
-
-% values of (a(t)u_x(x,t))_x at s(t)
-au_xx_S = au_xx(:, end);
+% Similarly, we compute a(t) u_{xx}(s(t), t) = a(t)\tilde{u}_{yy}(1,t)/s^2(t)
+u_xx = est_x_partial(u_x, h);
+au_xx_S = (avals .* u_xx(:, end)) ./ (svals.^2);
 
 end
 %%% End Main Function

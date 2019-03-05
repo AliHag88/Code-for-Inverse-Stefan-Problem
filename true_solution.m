@@ -30,10 +30,10 @@ s_star = s_true(t_final);
 u_true = @(x,t) t .* x .* (1-x);
 
 % Analytic function u_x(x,t)
-ux_true = @(x,t) t .* (1-2x);
+ux_true = @(x,t) t .* (1-2*x);
 
 % Analytic function g(t) = a u_x
-ux_true_0 = @(t) a_true(t) .* ux_true(0, t);
+g = @(t) a_true(t) .* ux_true(0, t);
 
 % \mu(t) = u(s(t),t) Phase Transition temperature
 u_true_S = @(t) u_true(s_true(t), t);
