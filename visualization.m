@@ -1,8 +1,8 @@
 function visualization(xmesh, tmesh, svals, avals, u, u_true, s_true, k, J, pausetime)
   if ~exist('pausetime', 'var')
-    pausetime = 0
+    pausetime = 0;
   else
-    oldState = pause('on')
+    oldState = pause('on');
   end
 
   len_xmesh = length(xmesh);
@@ -10,12 +10,6 @@ function visualization(xmesh, tmesh, svals, avals, u, u_true, s_true, k, J, paus
 
   % Final moment
   t_final = tmesh(end);
-
-  % Time stepsize
-  tau=(tmesh(2)-tmesh(1));
-
-  % spatial stepsize
-  h=(xmesh(2)-xmesh(1));
 
   % Initial approach (TODO: use initial_setup)
   s_ini = @(t) (s_true(t_final)-1)*t+1;
@@ -83,7 +77,7 @@ function visualization(xmesh, tmesh, svals, avals, u, u_true, s_true, k, J, paus
   ylabel('Functional Value J(k)')
 
   if pausetime > 0
-    pause(pausetime)
-    pause(oldState)
+    pause(pausetime);
+    pause(oldState);
   end
 end

@@ -1,8 +1,8 @@
 function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_iterations, do_visualization)
   % optimization: Run ISP example
   % Input Arguments:
-  %    - len_xmesh: Number of space grid points. Default: 100
-  %    - len_tmesh: Number of time grid points. Default: 100
+  %    - len_xmesh: Number of space grid points. Default: 20
+  %    - len_tmesh: Number of time grid points. Default: 20
   %    - tolerance: Required error for stopping criteria. Default: 1e-5
   %    - num_iterations: Number of gradient descent steps to take. Default: 200
   %    - do_visualization: Set to true to emit visualizations during the
@@ -16,13 +16,13 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
     len_tmesh = 20;
   end
   if ~exist('tolerance', 'var')
-    tolerance = 1e-5
+    tolerance = 1e-5;
   end
   if ~exist('num_iterations', 'var')
-    num_iterations = 200
+    num_iterations = 200;
   end
   if ~exist('do_visualization', 'var')
-    do_visualization = true;
+    do_visualization = false;
   end
 
   % Set final moment (eliminate one "magic constant" used in subsequent locations.)
@@ -36,8 +36,6 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
   % Uses global information to set mu_meas, w_meas, alpha
   % as well as initial approach s_ini and a_ini
   initial_setup;
-  
-%   alpha=10^(-2); Should be deleted
   
   % Initialize svals and avals
   svals = s_ini(tmesh);
@@ -63,20 +61,27 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
       Adjoint(xmesh, tmesh, svals, avals, u_T, w_meas, s_der, u_S, mu_meas);
 
     % Take step in antigradient direction
-    svals = svals - alpha * grad_s(u, psi, psi_x, tmesh, s_der, svals, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_t, psi_S, u_S, au_xx_S, s_star, psi_T);
+    s_update = grad_s(u, psi, psi_x, tmesh, s_der, svals, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_t, psi_S, u_S, au_xx_S, s_star, psi_T);
+    s_update = s_update / norm(s_update);
+    
+    svals = svals - step_size * s_update;
+    
     avals = avals - 0 * grad_a(u,psi,tmesh); % Note: avals not updated.
  
     % Precondition gradient
     % grad=precond(tmesh, grad, L); % Preconditioning for s(t) gradient
 
     % Update s_der
-    s_der = deriv_est(svals,tmesh);
+    s_der = deriv_est(svals, tmesh);
 
     % Calculate functional
     J(k) = abs(svals(end) - s_star)^2 + ...
            trapz(xmesh, (u_T - w_meas(xmesh)).^2) + ...
            trapz(tmesh, (u_S - mu_meas(tmesh)').^2);
-
+    
+    disp(J(k))
+    disp(norm(svals - s_true(tmesh)))
+    
     % Do visualization if selected
     if do_visualization
       visualization(xmesh, tmesh, svals, avals, u, u_true, s_true, k, J)

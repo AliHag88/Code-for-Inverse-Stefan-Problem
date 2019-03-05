@@ -63,9 +63,6 @@ len_xmesh = length(xmesh);
 % spatial stepsize
 h = xmesh(3)-xmesh(2);
 
-% time stepsize
-tau = tmesh(2)-tmesh(1);
-
 %% u_x (x,t) matrix of derivatives of u(x,t)
 u_x = zeros(size(u));
 

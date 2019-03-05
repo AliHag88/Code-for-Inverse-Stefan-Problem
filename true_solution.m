@@ -16,7 +16,7 @@ t_initial = tmesh(1);
 t_final = tmesh(end);
 
 % true s(t)
-s_true=@(t) (t.^2).*sqrt(t+0.2)+1;
+s_true = @(t) (t.^2).*sqrt(t+0.2)+1;
 
 % s(T) - s(T) at final time
 s_star = s_true(t_final);
