@@ -35,15 +35,15 @@ for i = 1:len_tmesh
     end
 end
 
-assert (all(size(u) == [len_tmesh, len_xmesh]))
-assert (length(au_xx_S) == len_tmesh)
-assert (iscolumn(au_xx_S))
-assert (length(u_S) == len_tmesh)
-assert (iscolumn(u_S))
-assert (length(u_x_S) == len_tmesh)
-assert (iscolumn(u_x_S))
-assert (length(u_T) == len_xmesh)
-assert (isrow(u_T))
+assert (all(size(u) == [len_tmesh, len_xmesh]));
+assert (length(au_xx_S) == len_tmesh);
+assert (iscolumn(au_xx_S));
+assert (length(u_S) == len_tmesh);
+assert (iscolumn(u_S));
+assert (length(u_x_S) == len_tmesh);
+assert (iscolumn(u_x_S));
+assert (length(u_T) == len_xmesh);
+assert (isrow(u_T));
 
 errorOut = norm(diff_visual, 'fro')*(x_new(2)-x_new(1))*(tmesh(2)-tmesh(1));
 

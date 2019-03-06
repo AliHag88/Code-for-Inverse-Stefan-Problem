@@ -61,11 +61,6 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
     % Take step in antigradient direction
     s_update = grad_s(tmesh, s_der, svals, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star, psi_T);
     s_update = s_update / norm(s_update);
-
-    fprintf('k: %d, size(svals):', k);
-    size(svals)
-    fprintf('size(s_update):');
-    size(s_update)
     
     svals = svals - step_size * s_update;
 

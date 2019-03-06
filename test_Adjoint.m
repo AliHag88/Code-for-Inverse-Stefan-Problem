@@ -34,16 +34,16 @@ function psiErrorOut = test_Adjoint(len_xmesh, len_tmesh, oscillation)
     Adjoint(xmesh, tmesh, boundary_values, avals, u_T, w_meas, s_der, u_S, mu_meas);
 
   % Check size of outputs
-  assert (all(size(psi) == [len_tmesh, len_xmesh]))
+  assert (all(size(psi) == [len_tmesh, len_xmesh]));
 
-  assert (length(psi_T) == len_xmesh)
-  assert (isrow(psi_T))
-  assert (length(psi_t_S) == len_tmesh)
-  assert (iscolumn(psi_t_S))
-  assert (length(psi_x_S) == len_tmesh)
-  assert (iscolumn(psi_x_S))
-  assert (length(psi_S) == len_tmesh)
-  assert (iscolumn(psi_S))
+  assert (length(psi_T) == len_xmesh);
+  assert (isrow(psi_T));
+  assert (length(psi_t_S) == len_tmesh);
+  assert (iscolumn(psi_t_S));
+  assert (length(psi_x_S) == len_tmesh);
+  assert (iscolumn(psi_x_S));
+  assert (length(psi_S) == len_tmesh);
+  assert (iscolumn(psi_S));
 
   psiErrorOut = norm(psi, 'fro')*(xmesh(2)-xmesh(1))*(tmesh(2)-tmesh(1));
 end

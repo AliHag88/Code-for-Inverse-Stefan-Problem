@@ -1,10 +1,10 @@
 function deriv = est_deriv(vals, mesh)
   % est_deriv: Calculate first order derivative estimate for vals on mesh.
   % The output is the same shape as `vals`.
-  %TODO: Instead of switching on shape here, dispatch to appropriate 
+  %TODO: Instead of switching on shape here, dispatch to appropriate
   % t- or x-derivative routine.
   if ~(isvector(vals) && isvector(mesh))
-      throw(MException('est_deriv:ArgumentError', 'est_deriv requires vector input'))
+      throw(MException('est_deriv:ArgumentError', 'est_deriv requires vector input'));
   end
   if isrow(vals) && isrow(mesh)
       deriv = diff(vals) ./ diff(mesh);

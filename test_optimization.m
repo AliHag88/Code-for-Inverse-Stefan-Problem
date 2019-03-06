@@ -19,14 +19,14 @@ function tf = test_optimization(len_xmesh, len_tmesh)
   num_iterations = 1;
   % Turn off visualization in optimization routine
   do_visualization = false;
-
+  
   tf = false;
   
   try
     [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_iterations, do_visualization);
-    isnumeric(J)
-    isnumeric(svals)
-    isnumeric(avals)
+    assert(isnumeric(J))
+    assert(isnumeric(svals))
+    assert(isnumeric(avals))
     tf = true;
     return
   catch ME
