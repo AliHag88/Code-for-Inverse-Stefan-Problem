@@ -12,22 +12,19 @@ function psiErrorOut = test_Adjoint(len_xmesh, len_tmesh, oscillation)
   xmesh = linspace(0,1,len_xmesh); % Space discretization for forward problem
   tmesh = linspace(0,1,len_tmesh)'; % Time discretization for forward problem
 
-  s_new = @(t) 2 * acoth(exp(exp(t)-1)*coth(1/2));
+  [u_true_T, ~, u_true_S, ~, ~, s_true, ~, a_true] = true_solution(tmesh);
 
-  u_true = @(x,t) exp(t).*cosh(x);
-  u_true_T = @(x) u_true(x, 1);
-
-  boundary_values = s_new(tmesh);
+  boundary_values = s_true(tmesh);
   s_der = est_deriv(boundary_values, tmesh);
 
-  % Set up problem with vanishing boundary data
-  u_T = u_true_T(xmesh) + oscillation;
+  avals = a_true(tmesh);
+
+  % Set up problem with analytic solution as input for adjoint.
   w_meas = u_true_T;
+  u_T = u_true_T(xmesh) + oscillation;
 
-  mu_meas = @(t) u_true(s_new(t), t);
+  mu_meas = u_true_S;
   u_S = mu_meas(tmesh) + oscillation;
-
-  avals = ones(size(tmesh));
 
   % Run solver
   [psi_t_S, psi_x_S, psi_S, psi_T, psi] = ...
@@ -35,7 +32,6 @@ function psiErrorOut = test_Adjoint(len_xmesh, len_tmesh, oscillation)
 
   % Check size of outputs
   assert (all(size(psi) == [len_tmesh, len_xmesh]));
-
   assert (length(psi_T) == len_xmesh);
   assert (isrow(psi_T));
   assert (length(psi_t_S) == len_tmesh);

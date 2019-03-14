@@ -18,18 +18,18 @@ function [psi_t_S, psi_x_S, psi_S, psi_T, psi] = Adjoint(xmesh,tmesh,svals,avals
   t_final = tmesh(end);
 
   % Interpolate s(t) values to form \bar{s}(t)=s(T-t)
-  s_bar = @(t) interp1(tmesh, svals, t_final-t);
+  s_bar = @(t) interp1(tmesh, svals, t_final - t);
 
   % Interpolate s' values to form s'(T-t)
-  sder = @(t) interp1(tmesh, s_der, t_final-t);
+  sder = @(t) interp1(tmesh, s_der, t_final - t);
 
   % Interpolate a values to form \bar{a}(t) = a(T-t)
-  af = @(t) interp1(tmesh, avals, t);
+  af = @(t) interp1(tmesh, avals, t_final - t);
 
   % u_T is not transformed to a non-rectangular domain by Forward.m
   uT = @(y) interp1(xmesh, u_T, y);
 
-  uS = @(t) interp1(tmesh, u_S, t_final-t);
+  uS = @(t) interp1(tmesh, u_S, t_final - t);
 
   mu = @(t) mu_meas(t_final - t);
 
@@ -111,10 +111,10 @@ function psi = pdeSolver(xmesh, tmesh, af, sf, sder, uT, uTrueT, uS, mU)
         deal(...
               0, ... # pl
               1, ... # ql
-              -sder(t)*sf(t)*ur+2*sf(t)*(uS(t)-mU(t)), ... # pr
+              sf(t)*(-sder(t)*ur+2*(uS(t)-mU(t))), ... # pr
               1 ... # qr
             );
-
+  
   % Calculate solution evaluated at each point of xmesh and tmesh.
   sol = pdepe(m, pde, ic, bc, xmesh, tmesh);
 

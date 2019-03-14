@@ -64,7 +64,7 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
 
     svals = svals - step_size * s_update;
 
-    avals = avals - 0 * grad_a(u,psi,tmesh); % Note: avals not updated.
+    avals = avals - 0 * grad_a(u, psi, tmesh); % Note: avals not updated.
 
     % Precondition gradient
     % grad=precond(tmesh, grad, L); % Preconditioning for s(t) gradient

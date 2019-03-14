@@ -1,4 +1,4 @@
-function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)%#ok<INUSL>
+function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   if ~exist('pausetime', 'var')
     pausetime = 0;
   else
@@ -9,26 +9,10 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)%#ok<INUSL
   len_tmesh = length(tmesh);
 
   % Grab analytic data from true_solution
-  [~, ~, ~, ~, ~, s_true, ~, ~] = true_solution(tmesh);
-  
-  % Grab initial data from initial_setup
-  [~, ~, ~, ~, ~, ~, s_ini] = initial_setup(tmesh);
-  
-  %% Surface plot of u on rectangular/square domain
-  % subplot(2,3,1)
-  % surf(xmesh, tmesh, u)
-  % title('Numerical solution u_k (x,t) on square domain.')
-  % xlabel('Distance x')
-  % ylabel('Time t')
+  [~, ~, ~, ~, ~, s_true, u_true, a_true] = true_solution(tmesh);
 
-  %% Below, we create an "image" plot, where u-values are translated to different colors.
-  subplot(2,3,1)
-  imagesc('XData', xmesh, 'YData', tmesh, 'CData', u)
-  title('Numerical solution u_k (x,t) on square domain.')
-  xlabel('Distance x')
-  ylabel('Time t')
-  colorbar
-  axis tight
+  % Grab initial data from initial_setup
+  [~, ~, ~, ~, ~, ~, s_ini, a_ini] = initial_setup(tmesh);
 
   % Create boundary function corresponding to svals
   s_new = @(t) interp1(tmesh, svals, t);
@@ -48,36 +32,100 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)%#ok<INUSL
     u_visual(i, :) = uf(x_new, tmesh(i));
   end
 
-  %% "image" plot of solution on its "native" domain.
-  subplot(2,3,2)
-  imagesc('XData', x_new, 'YData', tmesh, 'CData', u_visual)
+  % Transform u_true to a rectangular domain and evaluate it
+  u_true_rect = @(x,t) u_true(x/s_true(t), t).*(x<s_true(t));
+  U_TRUE_RECT = u_true_rect(X, T);
+
+  subplot(2,3,1);
+  %% Image plot of solution on its "native" domain.
   hold on
-  plot(s_true(tmesh), tmesh, '*', 'color', 'red')
-  plot(svals, tmesh, 'O', 'color', 'green')
-  plot(s_ini(tmesh), tmesh, '--', 'color', 'white')
-  title('True solution u(x,t), initial s(t), true s(t) and s_k(t).')
-  xlabel('Distance x')
-  ylabel('Time t')
+  imagesc('XData', x_new, 'YData', tmesh, 'CData', u_visual);
+  plot(s_true(tmesh), tmesh, '*', 'color', 'red');
+  plot(svals, tmesh, 'O', 'color', 'green');
+  plot(s_ini(tmesh), tmesh, '--', 'color', 'white');
+  title('u_k(x,t), true s(t), s_k(t), and s_ini(t).');
+  xlabel('Distance x');
+  ylabel('Time t');
   colorbar
   axis tight
-
-  %% Surface plot of solution on "native" domain.
-  % subplot(2,3,4)
-  % surf(x_new,tmesh,u_visual)
-  % title('Surface graph of u_k (x,t)')
-  % xlabel('Distance x')
-  % ylabel('Time t')
+  hold off
+  %% End Image plot of solution on "native" domain
 
 
-  %% Create plot of functional values
+  subplot(2,3,2);
+  %% Scatter plot of functional values
+  scatter(k, J(k), 'filled', 'MarkerFaceColor', 'black');
+  title('Cost Functional J');
+  xlabel('Iteration k');
+  ylabel('Functional Value J(k)');
+  %% End plot of functional values
+
+
+  subplot(2,3,3);
+  %% Plot of solution declination in rectangular domain
+  imagesc('XData', xmesh, 'YData', tmesh, 'CData', u - U_TRUE_RECT);
+  title('\tilde{u}_{true} - \tilde{u}_k');
+  xlabel('Distance x');
+  ylabel('Time t');
+  colorbar
+  %% End plot of solution declination in rectangular domain
+
+
   subplot(2,3,4)
-  scatter(k, J(k), 'filled', 'MarkerFaceColor', 'black')
-  title('Cost Functional J')
-  xlabel('Iteration k')
-  ylabel('Functional Value J(k)')
+  %% Line plot of s_true, svals, and s_ini
+  hold on
+  plot(tmesh, s_true(tmesh));
+  plot(tmesh, svals, '*');
+  plot(tmesh, s_ini(tmesh), '-');
+  legend('s_{true}', 's_{opt}', 's_{ini}');
+  xlabel('Time t');
+  ylabel('Position s(t)');
+  title('Optimization Output, x=s(t)');
+  hold off
+  %% End plot of s_true, svals, and s_init
+
+
+  subplot(2,3,5)
+  %% Line plot of a_true, avals, and a_ini
+  hold on
+  plot(tmesh, a_true(tmesh));
+  plot(tmesh, avals, '*');
+  plot(tmesh, a_ini(tmesh), '-');
+  legend('a_{true}', 'a_{opt}', 'a_{ini}');
+  xlabel('Time t');
+  ylabel('Value a(t)');
+  title('Optimization Output, a(t)');
+  hold off
+  %% End plot of a_true, avals, and a_init
+
 
   if pausetime > 0
     pause(pausetime);
     pause(oldState);
   end
 end
+
+%% Spare plotting "recipes"
+
+%% Surface plot of u on rectangular/square domain
+% surf(xmesh, tmesh, u)
+% title('Numerical solution u_k (x,t) on square domain.')
+% xlabel('Distance x')
+% ylabel('Time t')
+%% End surface plot of u on rectangular domain
+
+%% Surface plot of solution on "native" domain.
+% surf(x_new,tmesh,u_visual)
+% title('Surface graph of u_k (x,t)')
+% xlabel('Distance x')
+% ylabel('Time t')
+%% End surface plot of solution on "native" domain
+
+%% "image" plot, where u-values are translated to different colors.
+%imagesc('XData', xmesh, 'YData', tmesh, 'CData', u)
+%title('Numerical solution u_k (x,t) on square domain.')
+%xlabel('Distance x')
+%ylabel('Time t')
+%colorbar
+%axis tight
+%% End Image plot of solution on rectangular domain

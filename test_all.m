@@ -73,6 +73,14 @@ function [exitcode, passes] = test_all
       return
   end
   
+  tf = test_true_solution(10, 10);
+  passes = passes && tf;
+  if passes
+      exitcode = exitcode - 1;
+  else
+      return
+  end
+  
   %% Last test: run checkcode on MATLAB only
   % First, check if we're on Octave and bails out. Note that we've only gotten here
   % if all previous checks passed.
