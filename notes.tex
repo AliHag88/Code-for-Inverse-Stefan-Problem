@@ -292,58 +292,7 @@ Under the additional assumption that the sources $f \equiv 0$, the mapping simpl
 \end{gather*}
 The boundary conditions take the same form with the updated definition of $F$.
 This is the model implemented in \verb+Forward.m+ (specifically, in the \verb+pdeSolver+ subfunction), included in Section~\ref{sec:code-listing-forward}.
-
-\subsubsection{Model Problem For Forward Solver}
-The model problem currently implemented in \verb+test_Forward.m+, included in Section~\ref{sec:code-listing-test-forward} is~\eqref{eq:reduced-pde}--\eqref{eq:reduced-stefan} with a separable analytic solution and identically zero heat sources.
-That is, consider
-
-\begin{gather}
-  Lu \equiv a(t) u_{xx} - u_{t} = f,~\text{in}~\Omega\nonumber
-  \\
-  u(x,0) = \phi (x),~0 \leq x \leq s(0)=s_0\nonumber
-  \\
-  a(t) u_x (0,t) = g(t),~0 \leq t \leq T\nonumber
-  \\
-  a(t) u_x (s(t),t)
-  +  s'(t)
-  = 0,~0 \leq t \leq T\nonumber
-  \end{gather}
-  where the analytic solution is given by
-  \begin{gather}
-  a(t) = a_{\text{true}}(t) \equiv 1,
-  \\
-  u(x,t) = T(t) X(x)
-  \intertext{so}
-  u_x(x,t) = T(t) X'(x)
-  \intertext{and}
-  u_{xx}(x,t) = T(t) X''(x)
-  \\
-  u_t = T'(t) X(x)
-\end{gather}
-Choosing $T(0)=1$ and asserting further that $T'=T$, we see that to satisfy~\eqref{eq:reduced-pde} with right-hand side identically zero, we must have
-\[
-  u_{xx} - u_t = T X'' - T' X = T (X'' - X) = 0
-\]
-Here, we see that we may take any solution of $X''-X=0$ satisfying a given boundary condition at $x=0$, with price that the ODE that $s(t)$ must solve may be complicated.
-For instance, we may take the condition $u_x(0,t)=0$, which implies
-\[
-  X(x) = \cosh(x)
-\]
-is a solution, and hence
-\begin{gather}
-  \phi(x) = \cosh(x),
-  \\
-  u(x,t) = \exp(t) \cosh(x)
-  \intertext{and the analytic function $g(t)$ is given by}
-  g(t) = a(t) u_x(0,t) = \exp(t) \sinh(0) = 0
-  \intertext{To find the function $x=s(t)$, we solve the ODE~\eqref{eq:reduced-stefan}, which takes the form}
-  0 = T(t) X'(s(t)) + s'(t)
-  = \exp(t)\sinh(s(t)) + s'(t),
-  \intertext{Choosing the normalization}
-  s(0)=1=:s_0 % Can be any normalizing condition here
-  \intertext{we can check that the analytic solution is}
-  s(t) \equiv 2 \arccoth\left(\exp(\exp(t)-1) \coth(1/2)\right)
-\end{gather}
+The model problem currently implemented in \verb+test_Forward.m+, included in Section~\ref{sec:code-listing-test-forward} can be found in Section~\ref{sec:model-problem-1}.
 
 \section{Optimal Control Problem and Gradient-Based Approach}
 Consider the minimization of the functional
@@ -592,7 +541,7 @@ Pursuing integration by parts with respect to time, it follows that the correspo
 \end{gather*}
 This is the routine implemented in \verb+grad_s.m+, included in Section~\ref{sec:code-listing-grad-s}.
 
-\subsection{Model Problem \#1}
+\section{Model Problem \#1}\label{sec:model-problem-1
 As a model problem, we will take~\eqref{eq:intro-pde}--\eqref{eq:pde-stefan} with $b\equiv 1$, $\chi \equiv 0$, and $\gamma \equiv 1$:
 \begin{gather}
   Lu \equiv {(a(t) u_x)}_x - u_{t} = f,~\text{in}~\Omega
@@ -732,6 +681,7 @@ is the condition on the fixed boundary.
 Note that the domain degenerates at $t=0$ (and the problem data becomes singular), which is not supported by our theoretical framework; therefore, the data is shifted in time by a fixed amount \verb+tShift+.
 The \verb+fzero+ rootfinder is used to solve the necessary transcendental equation to find $\alpha$ (denoted by \verb+boundary_constant+ in the code.)
 This solution is implemented in \verb+true_solution.m+, included in Section~\ref{sec:code-listing-true-solution}.
+The test code in \verb+test_true_solution.m+, included in Section~\ref{sec:code-listing-test-true-solution}, simply verified that the output shape and size of the parameters is correct.
 
 %\subsection*{Acknowledgement}
 
@@ -755,6 +705,9 @@ This solution is implemented in \verb+true_solution.m+, included in Section~\ref
 
 \subsection{true\_solution}\label{sec:code-listing-true-solution}
 \lstinputlisting[style=MATLAB-editor]{true_solution.m}
+
+\subsection{test\_true\_solution}\label{sec:code-listing-test-true-solution}
+\lstinputlisting[style=MATLAB-editor]{test_true_solution.m}
 }
 
 \section{Change of Variables Details}
@@ -803,6 +756,60 @@ Suppose we have computed values $\tilde{\psi}(y,\bar{t})$ in the domain $[0,1]\t
   \\
   \psi_t(x,t) = -xs'(t)/s^2(t)\tilde{\psi}_y\left(x/s(t), t\right) + \tilde{\psi}_{\bar{t}}(x/s(t), t)
 \end{gather*}
+
+\section{Model Problem Zoo}
+\subsection{Separable Solution}
+
+The model problem currently implemented in \verb+test_Forward.m+, included in Section~\ref{sec:code-listing-test-forward} is~\eqref{eq:reduced-pde}--\eqref{eq:reduced-stefan} with a separable analytic solution and identically zero heat sources.
+That is, consider
+
+\begin{gather}
+  Lu \equiv a(t) u_{xx} - u_{t} = f,~\text{in}~\Omega\nonumber
+  \\
+  u(x,0) = \phi (x),~0 \leq x \leq s(0)=s_0\nonumber
+  \\
+  a(t) u_x (0,t) = g(t),~0 \leq t \leq T\nonumber
+  \\
+  a(t) u_x (s(t),t)
+  +  s'(t)
+  = 0,~0 \leq t \leq T\nonumber
+  \end{gather}
+  where the analytic solution is given by
+  \begin{gather}
+  a(t) = a_{\text{true}}(t) \equiv 1,
+  \\
+  u(x,t) = T(t) X(x)
+  \intertext{so}
+  u_x(x,t) = T(t) X'(x)
+  \intertext{and}
+  u_{xx}(x,t) = T(t) X''(x)
+  \\
+  u_t = T'(t) X(x)
+\end{gather}
+Choosing $T(0)=1$ and asserting further that $T'=T$, we see that to satisfy~\eqref{eq:reduced-pde} with right-hand side identically zero, we must have
+\[
+  u_{xx} - u_t = T X'' - T' X = T (X'' - X) = 0
+\]
+Here, we see that we may take any solution of $X''-X=0$ satisfying a given boundary condition at $x=0$, with price that the ODE that $s(t)$ must solve may be complicated.
+For instance, we may take the condition $u_x(0,t)=0$, which implies
+\[
+  X(x) = \cosh(x)
+\]
+is a solution, and hence
+\begin{gather}
+  \phi(x) = \cosh(x),
+  \\
+  u(x,t) = \exp(t) \cosh(x)
+  \intertext{and the analytic function $g(t)$ is given by}
+  g(t) = a(t) u_x(0,t) = \exp(t) \sinh(0) = 0
+  \intertext{To find the function $x=s(t)$, we solve the ODE~\eqref{eq:reduced-stefan}, which takes the form}
+  0 = T(t) X'(s(t)) + s'(t)
+  = \exp(t)\sinh(s(t)) + s'(t),
+  \intertext{Choosing the normalization}
+  s(0)=1=:s_0 % Can be any normalizing condition here
+  \intertext{we can check that the analytic solution is}
+  s(t) \equiv 2 \arccoth\left(\exp(\exp(t)-1) \coth(1/2)\right)
+\end{gather}
 
 
 \bibliographystyle{siam}
