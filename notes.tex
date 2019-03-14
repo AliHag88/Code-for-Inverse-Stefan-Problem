@@ -18,6 +18,7 @@
 \newtheorem{remark}{Remark}
 
 \newcommand{\D}[2]{\frac{\partial{} #1}{\partial{} #2}}
+\newcommand{\dD}[2]{\frac{d #1}{d #2}}
 \newcommand{\bk}[1]{\left\{#1\right\}}
 \newcommand{\norm}[1]{\left\Vert #1\right\Vert}%chktex 1 ok (math-mode)
 \newcommand{\lnorm}[1]{\left\vert #1\right\vert}%chktex 1 ok (math-mode)
@@ -70,7 +71,7 @@ Assume that we are able to measure the temperature on our domain and the positio
 Under these conditions, we are required to solve an \emph{inverse} Stefan problem (ISP): find a tuple
 \def\controlvarsWithArgs{s(t), a(t)}
 \def\controlvars{s, a}
-\def\controlvarsWithDelta{{\Delta s}, {\Delta a}}
+\def\controlvarsWithDelta{{\Delta s}, {\Delta a}}%chktex 1 ok (math-mode)
 \[
     \bk{
         u(x,t), \controlvarsWithArgs
@@ -171,7 +172,7 @@ In particular, it uses a method-of-lines technique as a differential-algebraic e
   + q(x,t) F\left(x,t,u,\D{u}{x} \right)\Big\vert_{x=a,b}
   = 0\label{eq:matlab-bc}
 \end{gather}
-In particular, the function $F$ appearing in the boundary condition is the same as the flux term in the PDE.
+In particular, the function $F$ appearing in the boundary condition is the same as the flux term in the PDE.\@
 In the MATLAB implementation, the method \verb+Forward+ is intended to produce a function $u(x,t)$ by computing $\utilde(y,t)$ and returning $u(x,t) = \utilde(x/s(t),t)$.
 The subfunction \verb+pdeSolver+ handles the conversion of problems of the form~\eqref{eq:tform-pde}--\eqref{eq:tform-rbdy} to the form that the MATLAB solver requires.
 
@@ -557,7 +558,7 @@ For the gradient with respect to $x=s(t)$, we have
   \left[\beta_0\lnorm{u(s(T),T) - w(s(T))}^2 + 2 \beta_2 (s(T) - s_*)\right] {\Delta s}(T) 
   - \int_0^T \big[\psi \gamma\big]_{x=s(t)} {\Delta s}'(t) \,dt
 \end{gather*}
-Under the assumptions used to formulate ``reduced'' models above ($\gamma \equiv 1$, $\chi \equiv 0$, $b\equiv 1$, we have
+Under the assumptions used to formulate ``reduced'' models above ($\gamma \equiv 1$, $\chi \equiv 0$, $b\equiv 1$,) we have
 \begin{gather*}
   \int_0^T \Big[2\beta_1\big(u - \mu\big)u_x - \psi  a u_{xx} \Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   \\
@@ -589,7 +590,7 @@ Pursuing integration by parts with respect to time, it follows that the correspo
   +
   \left[\beta_0\lnorm{u(s(T),T) - w(s(T))}^2 + 2 \beta_2 (s(T) - s_*) - \psi(s(T),T)\right] {\Delta s}(T) 
 \end{gather*}
-This is the routine implemented in \verb+grad_s.m+, included in section~\ref{sec:code-listing-grad-s}.
+This is the routine implemented in \verb+grad_s.m+, included in Section~\ref{sec:code-listing-grad-s}.
 
 \subsection{Model Problem \#1}
 As a model problem, we will take~\eqref{eq:intro-pde}--\eqref{eq:pde-stefan} with $b\equiv 1$, $\chi \equiv 0$, and $\gamma \equiv 1$:
@@ -629,6 +630,109 @@ and the gradient is
   \right]\,dt
 \end{gather}
 
+One such problem can be found in the text by Tikhonov \& Samarskii~\cite[Ch.\ II, App.\ IV, pp.\ 283--288]{tikhonov63}.
+The model problem originates in the following: find \(\big(u, \xi{}\big)\) satisfying
+\begin{gather}
+  \D{u_1}{t} - k_1 \D{^2 u_1}{x^2} = 0,~0<x<\xi(t),~t>0\label{eq:tikhonov-samarskii-pde-1}
+  \\
+  \D{u_2}{t} - k_2 \D{^2 u_2}{x^2} = 0,~\xi(t)<x<\infty,~t>0\label{eq:tikhonov-samarskii-pde-2}
+  \\
+  u_1(0,t) = c_1,~t>0
+  \\
+  u_2(x,0) = c_2,~x>\xi(0)
+  \\
+  u_1(x,0) = c_1,~x<\xi(0) % Note: this condition is added since $\xi$ is
+  % unknown a-priori.
+  \\
+  u_1(\xi(t),t) = u_2(\xi(t),t)=0,~t>0
+  \\
+  k_1 \D{u_1}{x}(\xi(t),t) - k_2 \D{u_2}{x}(\xi(t),t) = \gamma \dD{\xi}{t}(t)\label{eq:tikhonov-samarskii-stefancond}
+\end{gather}
+where \(k_1, k_2, \gamma >0\) are given, and without loss of generality \(c_1<0\), \(c_2\geq 0\).
+Direct calculation verifies that the exact solution to~\eqref{eq:tikhonov-samarskii-pde-1}--\eqref{eq:tikhonov-samarskii-stefancond} is
+\begin{gather}
+  u_1(x,t)=c_1 + B_1 \mathrm{erf}\left( \frac{x}{\sqrt{4 k_1 t}}\right)
+  \\
+  u_2(x,t)=A_2 + B_2 \mathrm{erf}\left( \frac{x}{\sqrt{4 k_2 t}}\right)
+  \\
+  \xi(t) = \alpha \sqrt{t}
+  \intertext{where}
+  \mathrm{erf}(x)=\frac{2}{\sqrt{\pi}} \int_0^x e^{-z^2} \,dz,
+  \\
+  B_1 =-\frac{c_1}{\mathrm{erf}\left(\alpha/\sqrt{4 k_1}\right)},\quad
+  B_2 = \frac{c_2}{1-\mathrm{erf}\left(\alpha/\sqrt{4 k_2}\right)}
+  \\
+  A_2 =-\mathrm{erf}\left(\alpha/\sqrt{4 k_2}\right) B_2
+  \intertext{and \(\alpha{}\) is a solution of the transcendental equation}
+  % %% Directly translated
+  %\frac{k_1 c_1 e^{-\frac{\alpha^2}{4 k_1}}}{\sqrt{k_1} \Phi\left(\alpha/\sqrt{4 k_1}\right)}
+  %+ \frac{k_2 c_2 e^{-\frac{\alpha^2}{4 k_2}}}{\sqrt{k_2}\left[1-\Phi\left(\alpha/\sqrt{4 k_2}\right) \right]}
+  %= -\frac{\gamma \sqrt{\pi}}{2} \alpha
+  % %% But some cancellation happens since we chose particular values for
+  % a_1/a_2 from reference.
+  \frac{\sqrt{k_1} c_1 e^{-\frac{\alpha^2}{4 k_1}}}{ \mathrm{erf}\left(\alpha/\sqrt{4 k_1}\right)}
+  + \frac{\sqrt{k_2} c_2 e^{-\frac{\alpha^2}{4 k_2}}}{\left[1-\mathrm{erf}\left(\alpha/\sqrt{4 k_2}\right) \right]}
+  = -\frac{\gamma \sqrt{\pi}}{2} \alpha
+\end{gather}
+The equation above has a unique solution \(\alpha>0\).
+
+To write the problem as a one-phase Stefan problem, we simply set $c_2=0$, so $u_2 \equiv 0$, and the function $u=u_1$ satisfies
+\begin{gather}
+  \D{u}{t} - k_1 \D{^2 u}{x^2} = 0,~0<x<\xi(t),~t>0
+  \\
+  u(0,t) = c_1,~t>0
+  \\
+  u(x,0) = c_1,~x<\xi(0) % Note: this condition is added since $\xi$ is
+  % unknown a-priori.
+  \\
+  u(\xi(t),t) = 0,~t>0
+  \\
+  k_1 \D{u}{x}(\xi(t),t) = \gamma \dD{\xi}{t}(t)
+\end{gather}
+where \(k_1, k_2, \gamma >0\) are given.
+The analytic solution is
+\begin{gather}
+  u(x,t)=c_1 + B_1 \mathrm{erf}\left( \frac{x}{\sqrt{4 k_1 t}}\right)
+  \\
+  \xi(t) = \alpha \sqrt{t}
+  \intertext{where}
+  \mathrm{erf}(x)=\frac{2}{\sqrt{\pi}} \int_0^x e^{-z^2} \,dz,
+  \\
+  B_1 =-\frac{c_1}{\mathrm{erf}\left(\alpha/\sqrt{4 k_1}\right)},\quad
+  \intertext{and \(\alpha{}\) is a solution of the transcendental equation}
+  \frac{\sqrt{k_1} c_1 e^{-\frac{\alpha^2}{4 k_1}}}{ \mathrm{erf}\left(\alpha/\sqrt{4 k_1}\right)}
+  = -\frac{\gamma \sqrt{\pi}}{2} \alpha
+\end{gather}
+
+We calculate
+\begin{gather}
+  u_x(x,t) = \frac{B_1}{\sqrt{\pi k_1 t}} \exp\left(-\frac{x^2}{4 k_1 t}\right)
+  \intertext{so}
+  k_1 u_x(s(t),t)
+  %= B_1 \frac{k_1}{\sqrt{\pi k_1 t}} \exp\left(- \frac{\alpha^2 t}{4 k_1 t}\right)
+  %\\
+  = B_1 \frac{k_1}{\sqrt{\pi k_1 t}} \exp\left(- \frac{\alpha^2}{4 k_1}\right)
+  \\
+  = \frac{c_1 \sqrt{k_1} \exp\left(-\frac{\alpha^2}{4 k_1}\right)}{\mathrm{erf}\left(\alpha/\sqrt{4 k_1}\right)}
+  \left(\frac{-1}{\sqrt{\pi t}}\right)
+  \intertext{By virtue of $\alpha$ satisfying the above transcendental equation and $\dD{\xi}{t} \equiv \frac{\alpha}{2 \sqrt{t}}$, it follows that}
+  u_x(s(t),t)
+  = \gamma \frac{\sqrt{\pi}}{2} \alpha \left(\frac{1}{\sqrt{\pi t}}\right)
+  \\
+  = \gamma \frac{\alpha }{2 \sqrt{t}}
+  =  \gamma \dD{\xi}{t}
+\end{gather}
+That is, the Neumann boundary condition is satisfied at $x=s(t)$.
+Similarly,
+\begin{gather*}
+  k_1 u_x(0,t) = \frac{ k_1 B_1 }{\sqrt{\pi k_1 t}} = \frac{\sqrt{k_1} B_1}{\sqrt{\pi t}}
+\end{gather*}
+is the condition on the fixed boundary.
+
+Note that the domain degenerates at $t=0$ (and the problem data becomes singular), which is not supported by our theoretical framework; therefore, the data is shifted in time by a fixed amount \verb+tShift+.
+The \verb+fzero+ rootfinder is used to solve the necessary transcendental equation to find $\alpha$ (denoted by \verb+boundary_constant+ in the code.)
+This solution is implemented in \verb+true_solution.m+, included in Section~\ref{sec:code-listing-true-solution}.
+
 %\subsection*{Acknowledgement}
 
 \appendix
@@ -648,6 +752,9 @@ and the gradient is
 
 \subsection{grad\_a}\label{sec:code-listing-grad-s}
 \lstinputlisting[style=MATLAB-editor]{grad_s.m}
+
+\subsection{true\_solution}\label{sec:code-listing-true-solution}
+\lstinputlisting[style=MATLAB-editor]{true_solution.m}
 }
 
 \section{Change of Variables Details}
