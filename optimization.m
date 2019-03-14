@@ -61,7 +61,7 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
     % Take step in antigradient direction
     s_update = grad_s(tmesh, s_der, svals, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star, psi_T);
     s_update = s_update / norm(s_update);
-    
+
     svals = svals - step_size * s_update;
 
     avals = avals - 0 * grad_a(u,psi,tmesh); % Note: avals not updated.
@@ -77,11 +77,10 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
            trapz(xmesh, (u_T - w_meas(xmesh)).^2) + ...
            trapz(tmesh, (u_S - mu_meas(tmesh)).^2);
 
-    
     % Do visualization if selected
     if do_visualization
         pause_time = 1; % Second
-        visualization(xmesh, tmesh, svals, avals, u, k, J, pause_time)
+        visualization(xmesh, tmesh, svals, avals, u, k, J, pause_time);
     end
 
     % Check stopping criteria
