@@ -22,7 +22,7 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
     num_iterations = 200;
   end
   if ~exist('do_visualization', 'var')
-    do_visualization = false;
+    do_visualization = true;
   end
 
   % Set final moment (eliminate one "magic constant" used in subsequent locations.)
@@ -79,8 +79,9 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
 
     % Do visualization if selected
     if do_visualization
-        pause_time = 1; % Second
+        pause_time = 0; % Second
         visualization(xmesh, tmesh, svals, avals, u, k, J, pause_time);
+        drawnow();
     end
 
     % Check stopping criteria

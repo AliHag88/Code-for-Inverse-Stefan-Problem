@@ -38,12 +38,12 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
 
   subplot(2,3,1);
   %% Image plot of solution on its "native" domain.
-  hold on
   imagesc('XData', x_new, 'YData', tmesh, 'CData', u_visual);
+  hold on
   plot(s_true(tmesh), tmesh, '*', 'color', 'red');
   plot(svals, tmesh, 'O', 'color', 'green');
   plot(s_ini(tmesh), tmesh, '--', 'color', 'white');
-  title('u_k(x,t), true s(t), s_k(t), and s_ini(t).');
+  title('u_k(x,t), s_{true}(t), s_k(t), and s_{ini}(t).');
   xlabel('Distance x');
   ylabel('Time t');
   colorbar
@@ -54,7 +54,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
 
   subplot(2,3,2);
   %% Scatter plot of functional values
-  scatter(k, J(k), 'filled', 'MarkerFaceColor', 'black');
+  plot(J, '*', 'MarkerFaceColor', 'black');
   title('Cost Functional J');
   xlabel('Iteration k');
   ylabel('Functional Value J(k)');
@@ -64,7 +64,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   subplot(2,3,3);
   %% Plot of solution declination in rectangular domain
   imagesc('XData', xmesh, 'YData', tmesh, 'CData', u - U_TRUE_RECT);
-  title('\tilde{u}_{true} - \tilde{u}_k');
+  title('tilde{u}_{true} - tilde{u}_k');
   xlabel('Distance x');
   ylabel('Time t');
   colorbar
@@ -73,8 +73,8 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
 
   subplot(2,3,4)
   %% Line plot of s_true, svals, and s_ini
-  hold on
   plot(tmesh, s_true(tmesh));
+  hold on
   plot(tmesh, svals, '*');
   plot(tmesh, s_ini(tmesh), '-');
   legend('s_{true}', 's_{opt}', 's_{ini}');
@@ -87,8 +87,8 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
 
   subplot(2,3,5)
   %% Line plot of a_true, avals, and a_ini
-  hold on
   plot(tmesh, a_true(tmesh));
+  hold on % Must go after first plot on axes
   plot(tmesh, avals, '*');
   plot(tmesh, a_ini(tmesh), '-');
   legend('a_{true}', 'a_{opt}', 'a_{ini}');
