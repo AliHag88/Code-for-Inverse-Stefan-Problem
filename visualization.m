@@ -33,7 +33,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   end
 
   % Transform u_true to a rectangular domain and evaluate it
-  u_true_rect = @(x,t) u_true(x/s_true(t), t).*(x<s_true(t));
+  u_true_rect = @(x,t) u_true(x./s_true(t), t).*(x<s_true(t));
   U_TRUE_RECT = u_true_rect(X, T);
 
   subplot(2,3,1);

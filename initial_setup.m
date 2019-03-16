@@ -11,13 +11,14 @@ s0 = s_true(t_initial);
 t_final = tmesh(end);
 
 % step_size (size of step in anti-gradient direction)
-step_size = 10^(-1);
+step_size = 1/300;
 
 % Use true solution to set measurements
 mu_meas = u_true_S;
 w_meas = u_true_T;
 
 % Initial Guess
-s_ini = @(t) (s_star - s0)/(t_final - t_initial) * (t - t_initial) + s0;
+% s_ini = @(t) (s_star - s0)/(t_final - t_initial) * (t - t_initial) + s0;
+s_ini=s_true;
 a_ini = a_true;
 end

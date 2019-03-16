@@ -60,7 +60,7 @@ function [u_true_T, u_true_0, u_true_S, aux_true_0, s_star, s_true, u_true, a_tr
 
   % Analytic function u=u(x,t)
   u_true = @(x,t) c1 + B1*erf(x./(2*sqrt(k1*(t + tShift))));
-
+  
   % Analytic function u_x(x,t)
   ux_true = @(x,t) (B1/sqrt(pi*k1*(t + tShift))).*exp(-(x.^2)./(4*k1*(t+tShift)));
 

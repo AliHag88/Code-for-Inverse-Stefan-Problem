@@ -10,16 +10,16 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
 
   % Set default arguments
   if ~exist('len_xmesh', 'var')
-    len_xmesh = 20;
+    len_xmesh = 50;
   end
   if ~exist('len_tmesh', 'var')
-    len_tmesh = 20;
+    len_tmesh = 10;
   end
   if ~exist('tolerance', 'var')
     tolerance = 1e-5;
   end
   if ~exist('num_iterations', 'var')
-    num_iterations = 200;
+    num_iterations = 500;
   end
   if ~exist('do_visualization', 'var')
     do_visualization = true;
