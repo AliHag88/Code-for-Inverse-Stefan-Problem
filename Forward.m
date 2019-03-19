@@ -31,10 +31,12 @@ af = @(t) interp1(tmesh, avals, t);
 % Interpolate s' values to form s'(t)
 sder = @(t) interp1(tmesh, s_der, t);
 
+uInitial_tilde = @(y) uInitial(y*svals(1));
+
 %%%
 %%% Calculate solution u(y,t) on rectangular domain
 %%%
-u = pdeSolver(xmesh, tmesh, af, s_current, sder, g, uInitial);
+u = pdeSolver(xmesh, tmesh, af, s_current, sder, g, uInitial_tilde);
 
 %%%
 %%% Calculate values of solution at requested locations
