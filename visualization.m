@@ -12,7 +12,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   [~, ~, ~, ~, ~, s_true, u_true, a_true] = true_solution(tmesh);
 
   % Grab initial data from initial_setup
-  [~, ~, ~, ~, ~, ~, s_ini, a_ini] = initial_setup(tmesh);
+  [~, ~, ~, ~, ~, ~, s_ini, a_ini] = initial_setup(tmesh, xmesh);
 
   % Create boundary function corresponding to svals
   s_new = @(t) interp1(tmesh, svals, t);
@@ -21,7 +21,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   [X, T] = meshgrid(xmesh, tmesh);
 
   % u:[0, max(s)] x [0, 1] \to R is defined by interpolation.
-  uf = @(x,t) interp2(X, T, u, x/s_new(t), t, 'linear', NaN);
+  uf = @(x,t) interp2(X, T, u, x/s_new(t), t, 'linear', 0);
 
   % Define new grid on state vector's "native" domain.
   x_new = linspace(0, max(svals), len_xmesh);
@@ -38,7 +38,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
 
   subplot(2,3,1);
   %% Image plot of solution on its "native" domain.
-  imagesc('XData', x_new, 'YData', tmesh, 'CData', u_visual);
+  %imagesc('XData', x_new, 'YData', tmesh, 'CData', u_visual);
   hold on
   plot(s_true(tmesh), tmesh, '*', 'color', 'red');
   plot(svals, tmesh, 'O', 'color', 'green');
@@ -54,7 +54,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
 
   subplot(2,3,2);
   %% Scatter plot of functional values
-  plot(J, '*', 'MarkerFaceColor', 'black');
+  plot(J(1:k), '*', 'MarkerFaceColor', 'black');
   title('Cost Functional J');
   xlabel('Iteration k');
   ylabel('Functional Value J(k)');

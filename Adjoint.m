@@ -33,13 +33,10 @@ function [psi_t_S, psi_x_S, psi_S, psi_T, psi] = Adjoint(xmesh,tmesh,svals,avals
 
   mu = @(t) mu_meas(t_final - t);
 
-  % w_meas needs to be transformed before being passed to pdeSolver.
-  w = @(y) w_meas(y*svals(end));
-
 %%%
 %%% Calculate solution on rectangular domain. These represent \tilde{\psi}(y,t)=psi(ys(t),t)
 %%%
-psi = pdeSolver(xmesh, tmesh, af, s_bar, sder, uT, w, uS, mu);
+psi = pdeSolver(xmesh, tmesh, af, s_bar, sder, uT, w_meas, uS, mu);
 
 %%%
 %%% Calculate values derived from psi

@@ -12,7 +12,9 @@ function psiErrorOut = test_Adjoint(len_xmesh, len_tmesh, oscillation)
   xmesh = linspace(0,1,len_xmesh); % Space discretization for forward problem
   tmesh = linspace(0,1,len_tmesh)'; % Time discretization for forward problem
 
-  [u_true_T, ~, u_true_S, ~, ~, s_true, ~, a_true] = true_solution(tmesh);
+  [~, ~, mu_meas, w_meas, ~, ~] = initial_setup(tmesh, xmesh);
+  
+  [~, u_true_0, ~, g, ~, s_true, ~, a_true] = true_solution(tmesh);
 
   boundary_values = s_true(tmesh);
   s_der = est_deriv(boundary_values, tmesh);
@@ -20,11 +22,7 @@ function psiErrorOut = test_Adjoint(len_xmesh, len_tmesh, oscillation)
   avals = a_true(tmesh);
 
   % Set up problem with analytic solution as input for adjoint.
-  w_meas = u_true_T;
-  u_T = u_true_T(xmesh) + oscillation;
-
-  mu_meas = u_true_S;
-  u_S = mu_meas(tmesh) + oscillation;
+  [~, ~, u_S, u_T, ~] = Forward(xmesh, tmesh, boundary_values, avals, g, u_true_0);
 
   % Run solver
   [psi_t_S, psi_x_S, psi_S, psi_T, psi] = ...

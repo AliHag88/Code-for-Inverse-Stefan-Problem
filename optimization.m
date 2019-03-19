@@ -10,19 +10,19 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
 
   % Set default arguments
   if ~exist('len_xmesh', 'var')
-    len_xmesh = 50;
+    len_xmesh = 20;
   end
   if ~exist('len_tmesh', 'var')
-    len_tmesh = 10;
+    len_tmesh = 20;
   end
   if ~exist('tolerance', 'var')
     tolerance = 1e-5;
   end
   if ~exist('num_iterations', 'var')
-    num_iterations = 500;
+    num_iterations = 200;
   end
   if ~exist('do_visualization', 'var')
-    do_visualization = true;
+    do_visualization = false;
   end
 
   % Set final moment (eliminate one "magic constant" used in subsequent locations.)
@@ -33,7 +33,7 @@ function [J, svals, avals] = optimization(len_xmesh, len_tmesh, tolerance, num_i
   tmesh = linspace(0,t_final,len_tmesh)'; % Time discretization (column)
 
   % Initial setup for solver (all tunable parameters should be set here)
-  [step_size, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = initial_setup(tmesh);
+  [step_size, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = initial_setup(tmesh, xmesh);
 
   % Initialize svals and avals
   svals = s_ini(tmesh);
