@@ -162,13 +162,14 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
     
     % Do visualization if selected
     if do_visualization
-        pause_time = 0; % Second
+        pause_time = 0; % Units for pause_time are seconds
         visualization(xmesh, tmesh, s_old, a_old, u, k, J_values, pause_time);
         drawnow();
     end
 
     % Check stopping criteria
-    if J_values(k) < tolerance
+    if (J_values(k) - J_values(k-1)) < tolerance * J_values(k)
+        disp(['Iterations stationary (in relative error) at k=' num2str(k) ' with tolerance ' num2str(tolerance) ]);
         J_values = J_values(1:k);
         break
     end

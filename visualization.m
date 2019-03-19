@@ -44,6 +44,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   plot(svals, tmesh, 'O', 'color', 'green');
   plot(s_ini(tmesh), tmesh, '--', 'color', 'white');
   title('u_k(x,t), s_{true}(t), s_k(t), and s_{ini}(t).');
+  legend({'s_{true}', 's_k', 's_{ini}'}, 'Location', 'best', 'FontSize', 10);
   xlabel('Distance x');
   ylabel('Time t');
   colorbar
@@ -77,7 +78,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   hold on
   plot(tmesh, svals, '*');
   plot(tmesh, s_ini(tmesh), '-');
-  legend('s_{true}', 's_{opt}', 's_{ini}');
+  legend({'s_{true}', 's_{opt}', 's_{ini}'}, 'Location', 'best', 'FontSize', 10);
   xlabel('Time t');
   ylabel('Position s(t)');
   title('Optimization Output, x=s(t)');
@@ -91,7 +92,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   hold on % Must go after first plot on axes
   plot(tmesh, avals, '*');
   plot(tmesh, a_ini(tmesh), '-');
-  legend('a_{true}', 'a_{opt}', 'a_{ini}');
+  legend({'a_{true}', 'a_{opt}', 'a_{ini}'}, 'Location', 'best', 'FontSize', 10);
   xlabel('Time t');
   ylabel('Value a(t)');
   title('Optimization Output, a(t)');
