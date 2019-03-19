@@ -76,6 +76,8 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   [au_xx_S, u_x_S, u_S, u_T, u, J_values(k)] = ...
     Functional(xmesh, tmesh, s_old, a_old, g, u_true_0, s_star, w_meas, mu_meas);
 
+  disp(['Initial functional value: ' num2str(J_values(k))]);
+
   % Calculate solution of adjoint problem
   [psi_t_S, psi_x_S, psi_S, psi_T, ~] = ...
     Adjoint(xmesh, tmesh, s_old, a_old, u_T, w_meas, u_S, mu_meas);
@@ -141,6 +143,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
       if J_curr < J_values(k-1)
         disp(['Found a decreasing step after ' num2str(sub_iter) ' iterations.']);
         disp(['Functional value J_{' num2str(k) '} == ' num2str(J_curr) '.']);
+        
         J_values(k) = J_curr;
         s_old = s_new; s_values(k, :) = s_old;
         a_old = a_new; a_values(k, :) = a_old;
@@ -148,14 +151,20 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
       end
       
       % If we can't find a step size that decreases the functional value,
+      % Save the final iterate and bail out of the gradient descent process.
       if sub_iter >= num_sub_iterations
         disp(['Failed to find appropriate step size in ' num2str(sub_iter) ' iterations.']);
         disp('s_final: ');
         disp(s_new)
+        
+        s_values(k, :) = s_new;
+        a_values(k, :) = a_new;
+        J_values = J_values(1:k);
         return
       end
       
-      % Reduce step size and try again
+      % Reduce step size and try again. This step size selection method is precisely the 
+      % Armijo rule with bisection at each trial step.
       curr_step_size = curr_step_size / 2;
       sub_iter = sub_iter + 1;
     end % While loop for sub step
