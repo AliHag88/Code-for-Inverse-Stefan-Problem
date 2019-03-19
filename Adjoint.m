@@ -1,4 +1,4 @@
-function [psi_t_S, psi_x_S, psi_S, psi_T, psi] = Adjoint(xmesh,tmesh,svals,avals,u_T,w_meas,s_der,u_S,mu_meas)
+function [psi_t_S, psi_x_S, psi_S, psi_T, psi] = Adjoint(xmesh,tmesh,svals,avals,u_T,w_meas,u_S,mu_meas)
   % Adjoint: Compute values of adjoint for ISP
   % Input Arguments:
   %    - xmesh: Space discretization
@@ -7,7 +7,6 @@ function [psi_t_S, psi_x_S, psi_S, psi_T, psi] = Adjoint(xmesh,tmesh,svals,avals
   %    - avals: Diffusion coefficient a(t) at time grid points
   %    - u_T: Vector of values u(x,T;v) after transformation y=x/s(t)
   %    - w_meas: Function of x, representing measurement u(x,T)=:w(x)
-  %    - s_der: Vector of values s'(t)
   %    - u_S: Vector of trace values u(s(t),t;v)
   %    - mu_meas: Function of t, representing measurement u(s(t),t)=:mu(t)
 
@@ -20,6 +19,9 @@ function [psi_t_S, psi_x_S, psi_S, psi_T, psi] = Adjoint(xmesh,tmesh,svals,avals
   % Interpolate s(t) values to form \bar{s}(t)=s(T-t)
   s_bar = @(t) interp1(tmesh, svals, t_final - t);
 
+  % Estimate pointwise values of s'
+  s_der = est_deriv(svals, tmesh);
+    
   % Interpolate s' values to form s'(T-t)
   sder = @(t) interp1(tmesh, s_der, t_final - t);
 

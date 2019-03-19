@@ -17,7 +17,6 @@ function psiErrorOut = test_Adjoint(len_xmesh, len_tmesh, oscillation)
   [~, u_true_0, ~, g, ~, s_true, ~, a_true] = true_solution(tmesh);
 
   boundary_values = s_true(tmesh);
-  s_der = est_deriv(boundary_values, tmesh);
 
   avals = a_true(tmesh);
 
@@ -26,7 +25,7 @@ function psiErrorOut = test_Adjoint(len_xmesh, len_tmesh, oscillation)
 
   % Run solver
   [psi_t_S, psi_x_S, psi_S, psi_T, psi] = ...
-    Adjoint(xmesh, tmesh, boundary_values, avals, u_T, w_meas, s_der, u_S, mu_meas);
+    Adjoint(xmesh, tmesh, boundary_values, avals, u_T, w_meas, u_S, mu_meas);
 
   % Check size of outputs
   assert (all(size(psi) == [len_tmesh, len_xmesh]));
