@@ -8,20 +8,21 @@ function [exitcode, passes] = test_all
 
   %% test_Forward
   tic();
-  tf1 = test_Forward(2^3, 2^3);
+  [u_err1, ~, ~] = test_Forward(2^3, 2^3);
   time1 = toc(); tic();
-  tf2 = test_Forward(2^4, 2^4);
+  [u_err2, ~, ~] = test_Forward(2^4, 2^4);
   time2 = toc(); tic();
-  tf3 = test_Forward(2^5, 2^5);
+  [u_err3, ~, ~] = test_Forward(2^5, 2^5);
   time3 = toc();
 
   % Report results. Order estimate should be >1, time scaling represents increase in time
   % after 2x increase in resolution
-  fprintf('Forward Problem Convergence Order Estimate: %5.3f\n', log(tf3/tf2)/log(tf2/tf1));
+  order_est = convergence_order_est(u_err1, u_err2, u_err3);
+  fprintf('Forward Problem Convergence Order Estimate: p=%5.3f\n', order_est);
   fprintf('Forward Problem Time Scaling: %5.3f, %5.3f\n', time3/time2, time2/time1);
 
   % Fail if necessary
-  passes = passes && (tf1 >= tf2) && (tf2 >= tf3);
+  passes = passes && (u_err1 >= u_err2) && (u_err2 >= u_err3);
   if passes
       exitcode = exitcode - 1;
   else
@@ -30,34 +31,20 @@ function [exitcode, passes] = test_all
 
   %% test_Adjoint with zero oscillation should converge
   tic();
-  tf1 = test_Adjoint(2^3, 2^3);
+  psi_err1 = test_Adjoint(2^3, 2^3);
   time1 = toc(); tic();
-  tf2 = test_Adjoint(2^4, 2^4);
+  psi_err2 = test_Adjoint(2^4, 2^4);
   time2 = toc(); tic();
-  tf3 = test_Adjoint(2^5, 2^5);
+  psi_err3 = test_Adjoint(2^5, 2^5);
   time3 = toc();
 
   % Report results. Order estimate should be >1. Time scaling represents increase in time
   % after 2x increase in resolution
-  fprintf('Adjoint Problem Convergence Order Estimate: %5.3f\n', log(tf3/tf2)/log(tf2/tf1));
+  order_est = convergence_order_est(psi_err1, psi_err2, psi_err3);
+  fprintf('Adjoint Problem Convergence Order Estimate: p=%5.3f\n', order_est);
   fprintf('Adjoint Problem Time Scaling: %5.3f, %5.3f', time3/time2, time2/time1);
   % Fail if necessary
-  passes = passes && (tf1 >= tf2) && (tf2 >= tf3);
-  if passes
-      exitcode = exitcode - 1;
-  else
-      return
-  end
-
-  %% test_Adjoint with decreasing oscillation (should give decreasing error)
-  tf1 = test_Adjoint(2^4, 2^4, 1e1);
-  tf2 = test_Adjoint(2^4, 2^4, 1);
-  tf3 = test_Adjoint(2^4, 2^4, 1e-1);
-
-  % Report results. These values should be > 1
-  fprintf('Adjoint Stability Estimate: Reducing Boundary Declination 10x: %5.3f, %5.3f', tf1/tf2, tf2/tf3);
-
-  passes = passes && (tf1 >= tf2) && (tf2 >= tf3);
+  passes = passes && (psi_err1 >= psi_err2) && (psi_err2 >= psi_err3);
   if passes
       exitcode = exitcode - 1;
   else
@@ -73,6 +60,7 @@ function [exitcode, passes] = test_all
       return
   end
   
+  %% Run some sanity checks for true solution
   tf = test_true_solution(10, 10);
   passes = passes && tf;
   if passes
@@ -120,3 +108,16 @@ function [exitcode, passes] = test_all
   exitcode = 0;
 end
 
+% Estimate order of convergence from e_n, e_{n+1}, and e_{n+2}.
+% Note that order of convergence p and the error estimate mu are defined as
+% lim_{n\to\infty} |e_{n+1}| / |e_n|^p = mu
+% Hence, log(e_{n+1}) - p*log(e_n) \approx log(mu) \approx log(e_{n+2}) - p*log(e_{n+1})
+% which implies log(e_{n+1}) - log(e_{n+2}) = p*(log(e_n) - log(e_{n+1}))
+% and hence p = log(e_{n+1}/e_{n+2}) / log(e_n/e_{n+1})
+function order_est = convergence_order_est(en, enp1, enp2)
+  if abs(en) < 1e-10 || abs(enp1) < 1e-10 || abs(enp2) < 1e-10
+      order_est = Inf;
+      return
+  end
+  order_est = log(enp1/enp2)/log(en/enp1);
+end
