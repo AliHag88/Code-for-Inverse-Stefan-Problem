@@ -1,4 +1,4 @@
-function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tolerance, num_iterations, num_sub_iterations, do_visualization)
+function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tolerance, num_iterations, num_sub_iterations, use_synthetic_data, initial_data_parameter, do_visualization)
   % optimization: Run ISP example
   % Input Arguments:
   %    - len_xmesh: Number of space grid points. Default: 20
@@ -6,8 +6,13 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   %    - tolerance: Required error for stopping criteria. Default: 1e-5
   %    - num_iterations: Number of gradient descent steps to take. Default: 200
   %    - num_sub_iterations: Number of trial steps to take to find decreasing step. Default: 20
-  %    - do_visualization: Set to true to emit visualizations during the
-  %      optimization process.
+  %    - use_synthetic_data: Set true to use measurements from PDE solver,
+  %      or set to false to use measurements from given problem. Default: true
+  %    - initial_data_parameter: Parameter passed into initial_setup.
+  %      Controls how far initial approach is from analytic solution.
+  %      Default: 0 (s_initial == s_true)
+  %    - do_visualization: Set to true to emit visualizations during the optimization process.
+  %      Default: false
   % Output Arguments:
   %    - J_values: Vector of functional values at each gradient iteration.
   %    - s_values: Vector of controls x=s_k(t) at each gradient iteration.
@@ -33,6 +38,13 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   end
   if ~exist('do_visualization', 'var')
     do_visualization = false;
+  end
+  % See initial_setup.m
+  if ~exist('use_synthetic_data', 'var')
+      use_synthetic_data = true;
+  end
+  if ~exist('initial_data_parameter', 'var')
+      initial_data_parameter = 0;
   end
   
   % If the norm of the update vector is below the threshold below, we will not normalize it.
@@ -62,7 +74,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   tmesh = linspace(0, t_final, len_tmesh)'; % Time discretization (column)
 
   % Initial setup for solver (all tunable parameters should be set here)
-  [max_step_size, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = initial_setup(tmesh, xmesh);
+  [max_step_size, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = initial_setup(tmesh, xmesh, use_synthetic_data, initial_data_parameter);
 
   % Initialize svals and avals
   s_old = s_ini(tmesh);
@@ -86,15 +98,15 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   % Main Optimization Loop
   while k <= num_iterations
     k = k + 1;
-    if any(isnan(psi_t_S)) || any(isnan(psi_x_S)) || any(isnan(psi_S)) || any(isnan(psi_T)) ...
-          || any(isnan(au_xx_S)) || any(isnan(u_x_S)) || any(isnan(u_S)) || any(isnan(u_T))
+    if any(isnan(psi_t_S)) || any(isnan(psi_x_S)) || any(isnan(psi_S)) ...
+          || any(isnan(au_xx_S)) || any(isnan(u_x_S)) || any(isnan(u_S))
       disp(['Invalid state or adjoint at step ' num2str(k) '.']);
       break
     end
       
     % Calculate update direction vector s_update
-    s_update = grad_s(tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star, psi_T);
-    if norm(s_update) > norm_update_threshold % Or is generally too small to work with
+    s_update = grad_s(tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star);
+    if norm(s_update) > norm_update_threshold % Only normalize if the update vector has nonzero norm.
         s_update = s_update / norm(s_update);
     end
     
@@ -121,12 +133,12 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
       % If svals or avals becomes to small, reduce the step size and try again
       if any(s_new < svals_minimum_threshold) || any(a_new < avals_minimum_threshold)  
         if sub_iter >= num_sub_iterations
-            disp(['Singularity developed in s(t) or a(t) at iteration ' num2str(sub_iter) '. Stopping Iterative Method.']);
+            disp(['Singularity developed in s(t) or a(t) after ' num2str(sub_iter) ' sub-iteration(s).']);
+            disp(['Stopping gradient descent at k=' num2str(k) '.']);
             disp('s_final: ');
             disp(s_new)
             break
         end
-        disp(['Reducing trial step size to ' num2str(curr_step_size/2)]);
         curr_step_size = curr_step_size / 2;
         sub_iter = sub_iter + 1;
         continue
@@ -141,7 +153,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
       % If we've found a step that decreases the functional value, break out of
       % the loop after saving s_new and a_new over s_old and a_old.
       if J_curr < J_values(k-1)
-        disp(['Found a decreasing step after ' num2str(sub_iter) ' iterations.']);
+        disp(['Found a decreasing step after ' num2str(sub_iter) ' sub-iteration(s).']);
         disp(['Functional value J_{' num2str(k) '} == ' num2str(J_curr) '.']);
         
         J_values(k) = J_curr;
@@ -153,7 +165,8 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
       % If we can't find a step size that decreases the functional value,
       % Save the final iterate and bail out of the gradient descent process.
       if sub_iter >= num_sub_iterations
-        disp(['Failed to find appropriate step size in ' num2str(sub_iter) ' iterations.']);
+        disp(['Failed to find appropriate step size in ' num2str(sub_iter) ' sub-iteration(s).']);
+        disp(['Functional value J_{' num2str(k) '} == ' num2str(J_curr) '.']);
         disp('s_final: ');
         disp(s_new)
         
@@ -172,12 +185,12 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
     % Do visualization if selected
     if do_visualization
         pause_time = 0; % Units for pause_time are seconds
-        visualization(xmesh, tmesh, s_old, a_old, u, k, J_values, pause_time);
+        visualization(xmesh, tmesh, s_old, a_old, u, k, J_values, pause_time, initial_data_parameter);
         drawnow();
     end
 
     % Check stopping criteria
-    if (J_values(k) - J_values(k-1)) < tolerance * J_values(k)
+    if abs(J_values(k) - J_values(k-1)) < tolerance * J_values(k)
         disp(['Iterations stationary (in relative error) at k=' num2str(k) ' with tolerance ' num2str(tolerance) ]);
         J_values = J_values(1:k);
         break
