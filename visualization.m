@@ -38,7 +38,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
 
   subplot(2,3,1);
   %% Image plot of solution on its "native" domain.
-  %imagesc('XData', x_new, 'YData', tmesh, 'CData', u_visual);
+  imagesc('XData', x_new, 'YData', tmesh, 'CData', u_visual);
   hold on
   plot(s_true(tmesh), tmesh, '*', 'color', 'red');
   plot(svals, tmesh, 'O', 'color', 'green');
@@ -47,9 +47,9 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   legend({'s_{true}', 's_k', 's_{ini}'}, 'Location', 'best', 'FontSize', 10);
   xlabel('Distance x');
   ylabel('Time t');
-  colorbar
-  axis tight
-  hold off
+  colorbar;
+  axis([min(x_new), max(x_new), min(tmesh), max(tmesh)]);
+  hold off;
   %% End Image plot of solution on "native" domain
 
 
@@ -59,6 +59,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   title('Cost Functional J');
   xlabel('Iteration k');
   ylabel('Functional Value J(k)');
+  axis([0, k, 0, Inf])
   %% End plot of functional values
 
 
@@ -68,7 +69,8 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   title('tilde{u}_{true} - tilde{u}_k');
   xlabel('Distance x');
   ylabel('Time t');
-  colorbar
+  colorbar;
+  axis([min(x_new), max(x_new), min(tmesh), max(tmesh)]);
   %% End plot of solution declination in rectangular domain
 
 
@@ -82,6 +84,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   xlabel('Time t');
   ylabel('Position s(t)');
   title('Optimization Output, x=s(t)');
+  axis([min(tmesh), max(tmesh), 0, Inf]);
   hold off
   %% End plot of s_true, svals, and s_init
 
@@ -96,6 +99,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   xlabel('Time t');
   ylabel('Value a(t)');
   title('Optimization Output, a(t)');
+  axis([min(tmesh), max(tmesh), 0, Inf]);
   hold off
   %% End plot of a_true, avals, and a_init
 
