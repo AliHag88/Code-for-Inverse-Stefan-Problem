@@ -1,4 +1,4 @@
-function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
+function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime, initial_data_parameter)
   if ~exist('pausetime', 'var')
     pausetime = 0;
   else
@@ -11,30 +11,29 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   % Grab analytic data from true_solution
   [~, ~, ~, ~, ~, s_true, u_true, a_true] = true_solution(tmesh);
 
-  % Grab initial data from initial_setup
-  [~, ~, ~, ~, ~, ~, s_ini, a_ini] = initial_setup(tmesh, xmesh);
-
-  % Create boundary function corresponding to svals
-  s_new = @(t) interp1(tmesh, svals, t);
-
-  % u(x,t) visualisation on a non-rectangular domain is based on 2d interpolation.
-  [X, T] = meshgrid(xmesh, tmesh);
-
-  % u:[0, max(s)] x [0, 1] \to R is defined by interpolation.
-  uf = @(x,t) interp2(X, T, u, x/s_new(t), t, 'linear', 0);
+  % Grab initial data from initial_setup. Set use_synthetic_data=false,
+  % since we aren't using the corresponding output parameters.
+  [~, ~, ~, ~, ~, ~, s_ini, a_ini] = initial_setup(tmesh, xmesh, false, initial_data_parameter);
 
   % Define new grid on state vector's "native" domain.
   x_new = linspace(0, max(svals), len_xmesh);
 
   % Initialize and evaluate u_visual, the values on the "native" domain.
   u_visual = zeros(len_tmesh, len_xmesh);
+  u_true_visual = zeros(len_tmesh, len_xmesh);
   for i = 1:len_tmesh
-    u_visual(i, :) = uf(x_new, tmesh(i));
+      sk_curr = svals(i);
+      t_curr = tmesh(i);
+      s_curr = s_true(t_curr);
+      shat_curr = min(sk_curr, s_curr);
+      
+      u_true_visual(i, :) = u_true(x_new, t_curr);
+      u_visual(i, :) = interp1(xmesh * sk_curr, u(i, :), x_new, 'linear', 0);
+      
+      % Both u_true_visual and u_visual are continued by zero
+      u_true_visual(i, x_new > shat_curr) = 0;
+      u_visual(i, x_new > shat_curr) = 0;
   end
-
-  % Transform u_true to a rectangular domain and evaluate it
-  u_true_rect = @(x,t) u_true(x./s_true(t), t).*(x<s_true(t));
-  U_TRUE_RECT = u_true_rect(X, T);
 
   subplot(2,3,1);
   %% Image plot of solution on its "native" domain.
@@ -47,6 +46,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   legend({'s_{true}', 's_k', 's_{ini}'}, 'Location', 'best', 'FontSize', 10);
   xlabel('Distance x');
   ylabel('Time t');
+  colormap(hot(20)); % Take 20 samples
   colorbar;
   axis([min(x_new), max(x_new), min(tmesh), max(tmesh)]);
   hold off;
@@ -59,16 +59,17 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime)
   title('Cost Functional J');
   xlabel('Iteration k');
   ylabel('Functional Value J(k)');
-  axis([0, k, 0, Inf])
+  axis([0, k, 0, 2*max(J)]);
   %% End plot of functional values
 
 
   subplot(2,3,3);
-  %% Plot of solution declination in rectangular domain
-  imagesc('XData', xmesh, 'YData', tmesh, 'CData', u - U_TRUE_RECT);
-  title('tilde{u}_{true} - tilde{u}_k');
+  %% Plot of solution declination
+  imagesc('XData', x_new, 'YData', tmesh, 'CData', u_visual - u_true_visual);
+  title('u_k - u_{true}');
   xlabel('Distance x');
   ylabel('Time t');
+  colormap(hot(20)); % Take 20 samples
   colorbar;
   axis([min(x_new), max(x_new), min(tmesh), max(tmesh)]);
   %% End plot of solution declination in rectangular domain
