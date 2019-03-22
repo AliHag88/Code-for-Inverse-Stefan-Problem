@@ -1,10 +1,10 @@
-function [grad]=grad_s(tmesh,svals,w_meas,u_T,mu_meas,u_x_S,psi_x_S,psi_t_S,psi_S,u_S,au_xx_S,s_star,psi_T)
+function [grad]=grad_s(tmesh,svals,w_meas,u_T,mu_meas,u_x_S,psi_x_S,psi_t_S,psi_S,u_S,au_xx_S,s_star)
   % grad_s: Calculate gradient with respect to x=s(t)
   % Input Arguments:
   %    - tmesh: Tiem grid on which functions are evaluated
   %    - svals: Vector of boundary location values
   %    - w_meas: Function, measurement u(x,T)
-  %    - u_T: Vector of values representing u(x/s(T),T)
+  %    - u_T: Function u(x,T)
   %    - mu_meas: Function, measurement u(s(t),t)
   %    - u_x_S: Vector of values u_x(s(t),t)
   %    - psi_x_S: Vector of values psi_x(s(t),t)
@@ -13,7 +13,6 @@ function [grad]=grad_s(tmesh,svals,w_meas,u_T,mu_meas,u_x_S,psi_x_S,psi_t_S,psi_
   %    - u_S: Vector of values u(s(t),t)
   %    - au_xx_S: Vector of values a(t) u_{xx}(s(t),t)
   %    - s_star: Measurement s(T)
-  %    - psi_T: Vector of values psi(x/s(T),T)
   % Output arguments:
   %    - grad: Vector of values representing J_s(t)
 
@@ -34,9 +33,12 @@ function [grad]=grad_s(tmesh,svals,w_meas,u_T,mu_meas,u_x_S,psi_x_S,psi_t_S,psi_
            psi_t_S - ...
            psi_S .* au_xx_S ...
          );
+  
+  svals_end = svals(end);
+  v1 = (u_T(svals_end)-w_meas(t_final));
   grad(end) = (...
-                (w_meas(t_final)-u_T(end))^2 + ...
-                2*(svals(end)-s_star) - ...
-                psi_T(end) ...
+                v1*(v1-2) + ...
+                2*(svals_end-s_star)
               );
+  grad(1) = 0;
 end
