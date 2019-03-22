@@ -79,7 +79,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   disp(['Initial functional value: ' num2str(J_values(k))]);
 
   % Calculate solution of adjoint problem
-  [psi_t_S, psi_x_S, psi_S, psi_T, ~] = ...
+  [psi_t_S, psi_x_S, psi_S, ~] = ...
     Adjoint(xmesh, tmesh, s_old, a_old, u_T, w_meas, u_S, mu_meas);
   
   
@@ -184,7 +184,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
     end
 
     % Update adjoint
-    [psi_t_S, psi_x_S, psi_S, psi_T, ~] = ...
+    [psi_t_S, psi_x_S, psi_S, ~] = ...
         Adjoint(xmesh, tmesh, s_old, a_old, u_T, w_meas, u_S, mu_meas);
   end % End main loop
 
