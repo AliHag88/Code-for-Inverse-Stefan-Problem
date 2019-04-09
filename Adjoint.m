@@ -1,5 +1,5 @@
 function [psi_t_S, psi_x_S, psi_S, psi] = Adjoint(xmesh,tmesh,svals,avals,u_T,w_meas,u_S,mu_meas)
-  % Adjoint: Compute values of adjoint for ISP
+  % Adjoint: Compute values of adjoint for ISP.
   % Input Arguments:
   %    - xmesh: Space discretization
   %    - tmesh: Time discretization
@@ -11,11 +11,11 @@ function [psi_t_S, psi_x_S, psi_S, psi] = Adjoint(xmesh,tmesh,svals,avals,u_T,w_
   %    - mu_meas: Function of t, representing measurement u(s(t),t)=:mu(t)
 
 %%%
-%%% Set up solver/parameters
+% Set up solver/parameters
 %%%
 
   t_final = tmesh(end);
-  
+
   % Calculate estimate for s' at grid points
   s_der = est_deriv(svals, tmesh);
 
@@ -25,20 +25,22 @@ function [psi_t_S, psi_x_S, psi_S, psi] = Adjoint(xmesh,tmesh,svals,avals,u_T,w_
   uS = @(t) interp1(tmesh, u_S, t);
 
 %%%
-%%% Calculate solution on rectangular domain. Output represents \tilde{\psi}(y,t)=psi(ys(t),t)
+% Calculate solution on rectangular domain.
+% Output represents \tilde{\psi}(y,t)=psi(ys(t),t)
 %%%
-psi = flipud(pdeSolver(...
-    xmesh, tmesh, flipud(avals), flipud(svals), sder_,...
-    @(t) zeros(size(t)), ... % aux_0
-    @(t) -sder_(t), ... % robin_coeff
-    @(t) uS(t_final - t) - mu_meas(t_final - t_final), ... % robin_rhs
-    @(x) u_T(x) - w_meas(x) ... % u_initial
-    ));
+  psi = flipud( ...
+            pdeSolver(...
+                       xmesh, tmesh, flipud(avals), flipud(svals), sder_,...
+                       @(t) zeros(size(t)), ... % aux_0
+                       @(t) sder_(t), ... % robin_coeff
+                       @(t) uS(t_final - t) - mu_meas(t_final - t), ... % robin_rhs
+                       @(x) u_T(x) - w_meas(x) ... % u_initial
+                     ) ...
+          );
 
 %%%
-%%% Calculate values derived from psi
+% Calculate traces of psi using \tilde{\psi}
 %%%
-%% Calculate traces of solution using pdeval
 tau = tmesh(2) - tmesh(1);
 psi_S = zeros(size(tmesh));
 psi_x_S = zeros(size(tmesh));

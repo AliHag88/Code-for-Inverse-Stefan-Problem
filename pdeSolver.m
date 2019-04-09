@@ -29,22 +29,22 @@ function u = pdeSolver(xmesh, tmesh, svals, avals, sder, aux_0, robin_coeff, rob
 %%%
 
 % Interpolate s values to form s(t)
-sf = @(t) interp1(tmesh, svals, t);
+  sf = @(t) interp1(tmesh, svals, t);
 
 % Interpolate a values to form a(t)
-af = @(t) interp1(tmesh, avals, t);
+  af = @(t) interp1(tmesh, avals, t);
 
 
-    m = 0; % Symmetry of the problem. 0=slab (rectangular)
+  m = 0; % Symmetry of the problem. 0=slab (rectangular)
 
     % PDE to be solved is
     %    c u_t = y^{-m} (y^m f(y,t,u, DuDy))_y + s
     % The output values below give the corresponding value at each point (x, t, u, u_x)
     pde = @(y,t,u,DuDx) ...
            deal(...
-                 (sf(t).^2), ... # c
-                 af(t)*DuDx, ... # f
-                 sf(t)*sder(t)*y*DuDx ... # s
+                 sf(t), ... # c
+                 af(t)*DuDx / sf(t), ... # f
+                 sder(t)*y*DuDx ... # s
                );
 
     % Initial condition u(x,t_0)
@@ -61,9 +61,9 @@ af = @(t) interp1(tmesh, avals, t);
     % x=xr
     bc = @(xl, ul, xr, ur, t) ...
           deal(...
-                -aux_0(t)*sf(t), ... # pl
+                -aux_0(t), ... # pl
                 1, ... # ql
-                -(robin_coeff(t)*ur+robin_rhs(t))*sf(t), ... # pr
+                robin_coeff(t)*ur-robin_rhs(t), ... # pr
                 1 ... # qr
               );
 

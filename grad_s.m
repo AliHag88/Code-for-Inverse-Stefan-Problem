@@ -17,9 +17,9 @@ function [grad]=grad_s(tmesh,svals,w_meas,u_T,mu_meas,u_x_S,psi_x_S,psi_t_S,psi_
   %    - grad: Vector of values representing J_s(t)
 
   t_final = tmesh(end);
-  
+
   s_der = est_deriv(svals, tmesh);
-  
+
   %% Test code for grad generation
   % grad=rand(length(tmesh),1);
 
@@ -33,12 +33,12 @@ function [grad]=grad_s(tmesh,svals,w_meas,u_T,mu_meas,u_x_S,psi_x_S,psi_t_S,psi_
            psi_t_S - ...
            psi_S .* au_xx_S ...
          );
-  
+
   svals_end = svals(end);
   v1 = (u_T(svals_end)-w_meas(t_final));
   grad(end) = (...
                 v1*(v1-2) + ...
-                2*(svals_end-s_star)
+                2*(svals_end-s_star) ...
               );
   grad(1) = 0;
 end

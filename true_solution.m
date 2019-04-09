@@ -1,4 +1,4 @@
-function [u_true_T, u_true_0, u_true_S, aux_true_S, s_star, s_true, u_true, a_true] = true_solution(tmesh, c1, latentHeat, tShift)
+function [u_true_T, u_true_0, u_true_S, aux_true_0, s_star, s_true, u_true, a_true] = true_solution(tmesh, c1, latentHeat, tShift)
   % true_solution: Return parameter functions for "true" solution.
   % See notes.tex for a citation to Tikhonov & Samarskii
   % Input Argument:
@@ -10,7 +10,7 @@ function [u_true_T, u_true_0, u_true_S, aux_true_S, s_star, s_true, u_true, a_tr
   %    - u_true_T: function u(x, t_final)
   %    - u_true_0: function u(x, t_0)
   %    - u_true_S: function u(s(t), t)
-  %    - aux_true_S: function g(t) = a(t) u_x(0, t)
+  %    - aux_true_0: function g(t) = a(t) u_x(0, t)
   %    - s_star: s(t_final)
   %    - s_true: function x=s(t)
   %    - u_true: function u=u(x,t)
@@ -56,9 +56,9 @@ function [u_true_T, u_true_0, u_true_S, aux_true_S, s_star, s_true, u_true, a_tr
 
   % Analytic function u=u(x,t)
   u_true = @(x,t) c1 + B1*erf(x./sqrt(4*(t + tShift)));
-  
+
   % Analytic function g(t) = a u_x(0,t).
-  aux_true_S = @(t) B1./sqrt(pi*(t+tShift));
+  aux_true_0 = @(t) B1./sqrt(pi*(t+tShift));
 
   % \mu(t) = u(s(t),t) Phase Transition temperature
   u_true_S = @(t) zeros(size(t)); % == u_true(s_true(t), t);
