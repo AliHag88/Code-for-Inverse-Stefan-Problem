@@ -14,6 +14,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   %      Default: 0 (s_initial == s_true)
   %    - do_visualization: Set to true to emit visualizations during the optimization process.
   %      Default: false
+  %
   % Output Arguments:
   %    - J_values: Vector of functional values at each gradient iteration.
   %    - s_values: Vector of controls x=s_k(t) at each gradient iteration.
@@ -55,6 +56,8 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   svals_minimum_threshold = 1e-4;
   avals_minimum_threshold = 1e-4;
   
+  % Threshold for maximum value of s(t)
+  svals_maximum_threshold = 1e2;
 
   % Counter for number of iterations
   k = 1;
@@ -75,7 +78,8 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   xmesh = linspace(0, 1, len_xmesh);  % Space discretization (row)
   tmesh = linspace(0, t_final, len_tmesh)'; % Time discretization (column)
 
-    [~, ~, ~, ~, ~, s_true, ~, ~] = true_solution(tmesh);
+  
+  [~, ~, ~, ~, ~, s_true, ~, ~] = true_solution(tmesh);
  
   
   % Initial setup for solver (all tunable parameters should be set here)
@@ -110,11 +114,11 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
     end
 
     % Calculate update direction vector s_update
-%     s_update = grad_s(tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star);
-%     if norm(s_update) > norm_update_threshold % Only normalize if the update vector has nonzero norm.
-%         s_update = s_update/ norm(s_update);
-%     end
-    
+    s_update = grad_s(tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star);
+    if norm(s_update) > norm_update_threshold % Only normalize if the update vector has nonzero norm.
+        s_update = s_update/ norm(s_update);
+    end
+
     % Calculate update direction vector a_update
     a_update = grad_a(u, psi, tmesh, xmesh, s_old);
     if norm(a_update) > norm_update_threshold
@@ -132,12 +136,13 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
     sub_iter = 1;
     while true
       % Take trial step along direction vector s_update and a_update
-      s_new = s_old - 0*curr_step_size * s_update;
-  
-      a_new = a_old -  a_update; % Note: avals not updated.
-      
+      s_new = s_old - curr_step_size * s_update;
+
+      a_new = a_old - 0*curr_step_size * a_update;
+
       % If svals or avals becomes to small, reduce the step size and try again
-      if any(s_new < svals_minimum_threshold) || any(a_new < avals_minimum_threshold)  
+      if any(s_new < svals_minimum_threshold) || any(a_new < avals_minimum_threshold) || ...
+              any(s_new > svals_maximum_threshold)
         if sub_iter >= num_sub_iterations
             fprintf('Singularity developed in s(t) or a(t) after %d sub-iteration(s).\n', sub_iter);
             fprintf('Stopping gradient descent at k=%d.\n', k);
@@ -149,7 +154,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
         sub_iter = sub_iter + 1;
         continue
       end
-      
+
       % Calculate functional value and state vector at new svals and avals vectors
       [au_xx_S, u_x_S, u_S, u_T, u, J_curr] = ...
         Functional(xmesh, tmesh, s_new, a_new, ...
