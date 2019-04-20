@@ -1,13 +1,11 @@
-function [grad]=grad_a(u,psi,tmesh,xmesh)%#ok<INUSL>
-  
-  u_x=est_x_partial(u, xmesh(2)-xmesh(1));
-  u_xx=est_x_partial(u_x, xmesh(2)-xmesh(1));
-  ux_x_0=u_x(:,1); 
-  psi_x_0=psi(:,1);
-  ux_x_S=u(:,end);
-  psi_x_S=psi(:,end);
-  
-  grad = -ux_x_0.*psi_x_0-ux_x_S.*psi_x_S;
-end
+function [grad]=grad_a(u,psi,tmesh,xmesh,svals)
 
+  grad = zeros(size(tmesh));
+  for ti = 1:length(tmesh)
+    xmesh_curr = xmesh*svals(ti);
+    [u_trace, u_x_trace] = pdeval(0, xmesh_curr, u(ti, :), xmesh_curr);
+    [psi_trace, psi_x_trace] = pdeval(0, xmesh_curr, psi(ti, :), xmesh_curr);
+    grad(ti) = -2*u_x_trace(1)*psi_trace(1) - trapz(xmesh_curr, u_x_trace .* psi_trace);
+  end
+end
 
