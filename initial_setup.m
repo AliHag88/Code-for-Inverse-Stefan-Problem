@@ -20,10 +20,13 @@ max_step_size = 1;
 
 
 % Initial Guess
-s_linear = @(t) ((s_star - s0)/(t_final - t_initial)) * (t - t_initial) + s0;
-s_ini = @(t) initial_data_parameter * s_linear(t) + (1 - initial_data_parameter) * s_true(t);
+ %s_linear = @(t) ((s_star - s0)/(t_final - t_initial)) * (t - t_initial) + s0;
+ %s_ini = @(t) initial_data_parameter * s_linear(t) + (1 - initial_data_parameter) * s_true(t);
+ %s_ini=@(t)((s_star - s0)/(t_final - t_initial)) * (t - t_initial) + s0 + 1/3;
+ s_ini=@(t) s_true(t);
 
-a_ini = @(t) a_true(t);
+% a_ini = @(t) a_true(t);
+a_ini = @(t) a_true(t)-0.8;
 
 % Use synthetic data to set measurements
 if use_synthetic_data
