@@ -376,7 +376,16 @@ The gradient with respect to $a(t)$ is given by
     - [u_x \psi]_{x=s(t)}
   \right]\,dt
 \end{gather*}
-
+Note that
+\begin{gather}
+  \int_0^{s(t)} u_{xx} \psi \,dx
+  = - \int_0^{s(t)} u_x \psi \,dx
+  + u_x(s(t),t) \psi(s(t),t)
+  - u_x(0,t) \psi(0,t)
+  \intertext{so the gradient with respect to $a$ can be written in the form}
+    - \int_0^{s(t)}  u_{x} \psi_x \,dx
+    - 2 [u_x \psi]_{x=0}
+\end{gather}
 \todo[inline]{Add reference to code listing once this is implemented}
 
 \section{Model Problem \#1}\label{sec:model-problem-1}
