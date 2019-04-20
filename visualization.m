@@ -13,7 +13,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime, initial_d
 
   % Grab initial data from initial_setup. Set use_synthetic_data=false,
   % since we aren't using the corresponding output parameters.
-  [~, ~, ~, ~, ~, ~, s_ini, a_ini] = initial_setup(tmesh, xmesh, false, initial_data_parameter);
+  [~, ~, ~, ~, ~, ~, ~, ~, s_ini, a_ini] = initial_setup(tmesh, xmesh, false, initial_data_parameter);
 
   % Define new grid on state vector's "native" domain.
   x_new = linspace(0, max(svals), len_xmesh);
