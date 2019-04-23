@@ -133,14 +133,12 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
     if norm(a_update) > 1e-10
         a_update = a_update / norm(a_update);
     end
-    
-    
    
     % Preconditioning for s(t) gradient
-    s_update = precond_s();
+    s_update = precond(tmesh, regularization_s, s_update);
     
     % Preconditioning for a(t) gradient
-    a_update = precond_a();    
+    a_update = precond(tmesh, regularization_a, a_update);
     
     curr_step_size = max_step_size;
     sub_iter = 1;
