@@ -69,6 +69,17 @@ function [exitcode, passes] = test_all
       return
   end
   
+  %% Check that gradient values haven't changed
+  % WARNING: This test is incredible fragile.
+  [error_before_precond, error_after_precond] = test_grad_s(32, 64, false);
+  tolerance = 1e-3;
+  passes = error_before_precond < tolerance && error_after_precond < tolerance;
+  if passes
+      exitcode = exitcode - 1;
+  else
+      return
+  end
+  
   %% Last test: run checkcode on MATLAB only
   % First, check if we're on Octave and bails out. Note that we've only gotten here
   % if all previous checks passed.
