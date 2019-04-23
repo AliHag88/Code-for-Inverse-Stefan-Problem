@@ -58,18 +58,14 @@ function [J_values, s_values, a_values] = optimization(...
   if ~exist('initial_data_parameter_a', 'var')
     initial_data_parameter_a = 0.6;
   end
+  % Preconditioning parameters 
+  if ~exist('regularization_s', 'var')
+    regularization_s = 0.5;
+  end
+  if ~exist('regularization_a', 'var')
+    regularization_a = 0.22;
+  end
   
-  % Defining global variables for preconditioning  
-  
-  global tmesh s_update a_update L_s L_a
-  
-  
- % Preconditioning parameters 
-   
-   L_s=0.5;
-   
-   L_a=0.22;
-   
   % If the norm of the update vector is below the threshold below, we will not normalize it.
   norm_update_threshold = 1e-10;
   
