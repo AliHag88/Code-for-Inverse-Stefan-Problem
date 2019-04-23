@@ -1,4 +1,8 @@
-function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tolerance, num_iterations, num_sub_iterations, use_synthetic_data, initial_data_parameter_s, initial_data_parameter_a, do_visualization)
+function [J_values, s_values, a_values] = optimization(...
+    len_xmesh, len_tmesh, ...
+    tolerance, num_iterations, num_sub_iterations, use_synthetic_data, ...
+    initial_data_parameter_s, initial_data_parameter_a, ...
+    regularization_s, regularization_a, do_visualization)
   % optimization: Run ISP example
   % Input Arguments:
   %    - len_xmesh: Number of space grid points. Default: 20
@@ -8,9 +12,11 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   %    - num_sub_iterations: Number of trial steps to take to find decreasing step. Default: 20
   %    - use_synthetic_data: Set true to use measurements from PDE solver,
   %      or set to false to use measurements from given problem. Default: true
-  %    - initial_data_parameter: Parameter passed into initial_setup.
-  %      Controls how far initial approach is from analytic solution.
-  %      Default: 0 (s_initial == s_true)
+  %    - initial_data_parameter_{s,a}: Parameter passed into initial_setup
+  %      to control how far initial approach is from analytic solution.
+  %      Default: 0 (s_initial == s_true or a_initial == a_true)
+  %    - regularization_{s,a}: Weight given to regularization term during
+  %      gradient descent process.
   %    - do_visualization: Set to true to emit visualizations during the optimization process.
   %      Default: false
   % Output Arguments:
@@ -30,6 +36,8 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   if ~exist('tolerance', 'var')
     tolerance = 1e-9;
   end
+  
+  % Flags below change the optimization routine
   if ~exist('num_iterations', 'var')
     num_iterations = 40;
   end
@@ -39,15 +47,16 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   if ~exist('do_visualization', 'var')
     do_visualization = true;
   end
-  % See initial_setup.m
+  
+  % See initial_setup.m for the following parameters
   if ~exist('use_synthetic_data', 'var')
-      use_synthetic_data = true;
+    use_synthetic_data = true;
   end
   if ~exist('initial_data_parameter_s', 'var')
-      initial_data_parameter_s = 0.6;
+    initial_data_parameter_s = 0.6;
   end
   if ~exist('initial_data_parameter_a', 'var')
-      initial_data_parameter_a = 0.6;
+    initial_data_parameter_a = 0.6;
   end
   
   % Defining global variables for preconditioning  
@@ -67,7 +76,6 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   % Thresholds for minimum values of s(t) and a(t)
   svals_minimum_threshold = 1e-4;
   avals_minimum_threshold = 1e-4;
-  
 
   % Counter for number of iterations
   k = 1;
@@ -88,7 +96,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   xmesh = linspace(0, 1, len_xmesh);  % Space discretization (row)
   tmesh = linspace(0, t_final, len_tmesh)'; % Time discretization (column)
 
-    [~, ~, ~, ~, ~, s_true, ~, a_true] = true_solution(tmesh);
+  [~, ~, ~, ~, ~, s_true, ~, a_true] = true_solution(tmesh);
  
   
   % Initial setup for solver (all tunable parameters should be set here)
@@ -106,7 +114,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
   [au_xx_S, u_x_S, u_S, u_T, u, J_values(k)] = ...
     Functional(xmesh, tmesh, s_old, a_old, g, u_true_0, s_star, w_meas, mu_meas);
 
-  disp(['Initial functional value: ' num2str(J_values(k))]);
+  fprintf('Initial functional value: %2.5f.\n', J_values(k));
 
   % Calculate solution of adjoint problem
   [psi_t_S, psi_x_S, psi_S, psi] = ...
@@ -118,7 +126,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
     k = k + 1;
     if any(isnan(psi_t_S)) || any(isnan(psi_x_S)) || any(isnan(psi_S)) ...
           || any(isnan(au_xx_S)) || any(isnan(u_x_S)) || any(isnan(u_S))
-      disp(['Invalid state or adjoint at step ' num2str(k) '.']);
+      fprintf('Invalid state or adjoint at step %d.\n', k);
       break
     end
       
@@ -147,12 +155,14 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
       s_new = s_old - curr_step_size * s_update;
   
       a_new = a_old - 0.01*a_update; % Note: avals not updated.
+                                     % Note: the above comment is obviously
+                                     % incorrect.
       
       % If svals or avals becomes to small, reduce the step size and try again
       if any(s_new < svals_minimum_threshold) || any(a_new < avals_minimum_threshold)  
         if sub_iter >= num_sub_iterations
-            disp(['Singularity developed in s(t) or a(t) after ' num2str(sub_iter) ' sub-iteration(s).']);
-            disp(['Stopping gradient descent at k=' num2str(k) '.']);
+            fprintf('Singularity developed in s(t) or a(t) after %d sub-iteration(s).\n', sub_iter);
+            fprintf('Stopping gradient descent at k=%d.\n', k);
             disp('s_final: ');
             disp(s_new)
             break
@@ -171,10 +181,10 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
       % If we've found a step that decreases the functional value, break out of
       % the loop after saving s_new and a_new over s_old and a_old.
       if J_curr < J_values(k-1)
-        disp(['Found a decreasing step after ' num2str(sub_iter) ' sub-iteration(s).']);
-        disp(['Functional value J_{' num2str(k) '} == ' num2str(J_curr) '.']);
-        disp(['||s_k-s_true||=' num2str(norm(s_new-s_true(tmesh)))])
-        disp(['||a_k-a_true||=' num2str(norm(a_new-a_true(tmesh)))])
+        fprintf('Found a decreasing step after %d sub-iterations.\n', sub_iter);
+        fprintf('Functional value J_{%d} == %2.5f.\n', k, J_curr);
+        fprintf('||s_k-s_true||=%2.5f.\n', norm(s_new-s_true(tmesh)));
+        fprintf('||a_k-a_true||=%2.5f.\n', norm(a_new-a_true(tmesh)));
 
         J_values(k) = J_curr;
         s_old = s_new; s_values(k, :) = s_old;
@@ -185,10 +195,10 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
       % If we can't find a step size that decreases the functional value,
       % Save the final iterate and bail out of the gradient descent process.
       if sub_iter >= num_sub_iterations
-        disp(['Failed to find appropriate step size in ' num2str(sub_iter) ' sub-iteration(s).']);
-        disp(['Functional value J_{' num2str(k) '} == ' num2str(J_curr) '.']);
-        disp(['||s_k-s_true||=' num2str(norm(s_new-s_true(tmesh)))]) % extra
-        disp(['||a_k-a_true||=' num2str(norm(a_new-a_true(tmesh)))]) % extra
+        fprintf('Failed to find appropriate step size in %d sub-iterations.\n', sub_iter);
+        fprintf('Functional value J_{%d} == %2.5f.\n', k, J_curr);
+        fprintf('||s_k-s_true||=%2.5f.\n', norm(s_new-s_true(tmesh)));
+        fprintf('||a_k-a_true||=%2.5f.\n', norm(a_new-a_true(tmesh)));
         disp('s_final: ');
         disp(s_new);
        
@@ -214,7 +224,7 @@ function [J_values, s_values, a_values] = optimization(len_xmesh, len_tmesh, tol
 
     % Check stopping criteria
     if abs(J_values(k) - J_values(k-1)) < tolerance * J_values(k)% && abs(a_new - a_old) < tolerance * a_new
-        disp(['Iterations stationary (in relative error) at k=' num2str(k) ' with tolerance ' num2str(tolerance) ]);
+        fprintf('Iterations stationary (in relative error) at k=%d with tolerance %2.5f.\n', k, tolerance);
         J_values = J_values(1:k);
         break
     end
