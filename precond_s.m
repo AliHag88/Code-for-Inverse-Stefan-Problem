@@ -1,25 +1,15 @@
-function [grad]=precond_s(L, s_update, tmesh)
+function [g]=precond_s() % here I don't need to specify input since I am using grad_old everytime
+%  t_initial,t_final,Number_of_points, old_gradient
+global tmesh
 
-  s_update_fn = @(t)interp1(tmesh, s_update, t);
+solinit=bvpinit(tmesh,[80 80]);
+sol=bvp4c(@bvp4ode,@bvp4bc,solinit);
+xint=tmesh;
+Sxint=deval(sol,xint);
+% plot(xint,Sxint(1,:));
+ 
+g=Sxint(1,:)';
 
-  % Define ODEs for preconditioning
-  ode_s = @(t,y) [y(2), y(1) - s_update_fn(t)/L^2];
-
-  % Define boundary conditions for preconditioning
-  bc_s = @(ya, yb) [ya(2) yb(2)];
-
-  % Initialize solver
-  solinit = bvpinit(tmesh, [80 80]);
-
-  % Run solver
-  sol = bvp4c(ode_s,bc_s,solinit);
-
-  % Evaluate output (preconditioned gradient) on tmesh
-  Sint = deval(sol,tmesh);
-
-  % Extract first component and make it a column vector
-  grad = Sint(1,:)';
-
-  % Artificially set J_s(0)=0
-  grad(1) = 0;
-end
+g(1)=0;
+ 
+return     
