@@ -26,6 +26,7 @@
 \newcommand{\norm}[1]{\left\Vert #1\right\Vert}%chktex 1 ok (math-mode)
 \newcommand{\lnorm}[1]{\left\vert #1\right\vert}%chktex 1 ok (math-mode)
 \DeclareMathOperator{\arccoth}{\text{arccoth}}
+\let\l\ell%
 
 \begin{document}
 
@@ -75,6 +76,13 @@ Under these conditions, we are required to solve an \emph{inverse} Stefan proble
 \def\controlvarsWithArgs{s(t), a(t)}
 \def\controlvars{s, a}
 \def\controlvarsWithDelta{{\Delta s}, {\Delta a}}%chktex 1 ok (math-mode)
+\def\acontrolspace{W_2^1}
+\def\scontrolspace{W_2^2}
+\def\controlSpace{\scontrolspace(0,T) \times{} \acontrolspace(0,T)}
+\def\controlSpaceNorm{ \max\Big( %
+    \norm{s}_{\scontrolspace(0,T)}, %
+    \norm{a}_{\acontrolspace(0,T)} %
+    \Big)}
 \[
     \bk{
         u(x,t), \controlvarsWithArgs
@@ -119,19 +127,12 @@ We will consider the problem~\eqref{eq:intro-pde}--\eqref{eq:pde-stefan} where $
         \Big\},\label{eq:control-set}
 \end{align}
 where $\beta_0, \beta_1, \beta_2 \geq 0$ and $a_0, \delta, R > 0$ are given, and
-\def\acontrolspace{W_2^1}
-\def\scontrolspace{W_2^2}
 \begin{gather*}
-  H := \acontrolspace(0,T)
-  \times \scontrolspace(0,T)
+  H := \controlSpace{}
     \\
-    \norm{v}_H := \max\Big(
-    \norm{a}_{\acontrolspace(0,T)},
-    \norm{s}_{\scontrolspace(0,T)}
-    \Big)
+    \norm{v}_H := \controlSpaceNorm{}
   \end{gather*}
   Define
-  \let\l\ell%
 \[
   D := \bk{(x,t) : 0\leq x\leq \l,~ 0\leq t\leq T},
 \]
@@ -320,7 +321,7 @@ Under the assumptions used to formulate ``reduced'' models above ($\gamma \equiv
   - \int_0^T \psi(s(t),t) {\Delta s}'(t) \,dt
 \end{gather*}
 Pursuing integration by parts with respect to time, it follows that the corresponding gradient term is
-\begin{gather*}
+\begin{gather}
   % \int_0^T \Big[2\big(u - \mu\big)u_x - \psi  a u_{xx} \Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   % \\
   % +
@@ -363,8 +364,8 @@ Pursuing integration by parts with respect to time, it follows that the correspo
   +
   \left[
     \big[u - w\big]\big[u - w - 2\big] + 2 (s(T) - s_*)
-  \right]\vert_{(x,t)=(s(T),T)} {\Delta s}(T)
-\end{gather*}
+  \right]\vert_{(x,t)=(s(T),T)} {\Delta s}(T)\label{eq:gradient-wrt-s}
+\end{gather}
 Interpreting the integrand in the first term as a pointwise function is one way
 to write the gradient calculation in discrete form; this is the routine implemented in \verb+grad_s+, included in Section~\ref{sec:code-listing-grad-s}.
 
@@ -384,9 +385,127 @@ Note that
   - u_x(0,t) \psi(0,t)
   \intertext{so the gradient with respect to $a$ can be written in the form}
     - \int_0^{s(t)}  u_{x} \psi_x \,dx
-    - 2 [u_x \psi]_{x=0}
+    - 2 [u_x \psi]_{x=0}\label{eq:gradient-wrt-a}
 \end{gather}
-\todo[inline]{Add reference to code listing once this is implemented}
+
+This final form of the gradient with respect to $a$ is implemented in
+\verb+grad_a.m+, included below in Section~\ref{sec:code-listing-grad-a}.
+
+\subsection{Sobolev Preconditioning}
+Note that the gradient
+formulae~\eqref{eq:gradient-wrt-s},~\eqref{eq:gradient-wrt-a} do not, in
+general, agree precisely with the definition of the Frechet gradient of $s$ and
+$a$, respectively; for example, since $s \in \scontrolspace$, we should require
+the gradient $J_s$ be in the form
+\begin{align*}
+  \J(s+{\Delta s}) - \J(s)
+  & = \langle J_s, {\Delta s} \rangle_{\scontrolspace(0,T)}
+  + o({\Delta s})
+  \\
+  & = \int_0^T \left[
+    J_s(t) {\Delta s}(t)
+    + J_s'(t) {\Delta s}'(t)
+    + J_s''(t) {\Delta s}''(t)
+    \right]\,dt
+    + o({\Delta s})
+\end{align*}
+but the gradient in eq.~\eqref{eq:gradient-wrt-s} has the form
+\[
+  \int_0^T \tilde{J}_s(t) {\Delta s}(t) \,dt + \tilde{\tilde{J}} {\Delta s}(T)
+\]
+Note that the above functional \emph{is} formally a linear functional over
+$\scontrolspace{}$; functions in $\scontrolspace(0,T)$ are continuous, so the
+delta function is a member of the dual space.
+By Reisz representation formula, any such functional over $\scontrolspace$ can
+be written in the required form; what remains is to numerically approximate the
+element $J_s$ above, which amounts to a projection step.
+Since the gradient is used to derive the search direction in the gradient
+descent algorithm, one should require that the action of $J_s$ on the increment
+${\Delta s}$ be unchanged after this projection.
+We will for now project $s$ and $a$ into $W_2^1$; we should have
+\begin{gather*}
+  \int_0^T \left[
+    \tilde{J}_s(t) {\Delta s}(t)
+    + \delta_T(t)\tilde{\tilde{J}} {\Delta s}(T)
+  \right]\,dt
+  =\int_0^T \left[
+    J_s(t) {\Delta s}(t)
+    + J_s'(t) {\Delta s}'(t)
+  \right] \,dt
+  \\
+  = \int_0^T \left[
+    J_s(t) {\Delta s}(t)
+    - J_s''(t) {\Delta s}(t)
+    + J_s'(T) {\Delta s}(T)\delta_T(t)
+    - J_s'(0) {\Delta s}(0)\delta_0(t)
+  \right] \,dt
+  \intertext{and hence}
+  % 0 = \int_0^T \left[
+  %   J_s(t) {\Delta s}(t)
+  %   - J_s''(t) {\Delta s}(t)
+  %   + J_s'(T) {\Delta s}(T)\delta_T(t)
+  %   - J_s'(0) {\Delta s}(0)\delta_0(t)
+  %   - \tilde{J}_s(t) {\Delta s}(t)
+  %   - \delta_T(t)\tilde{\tilde{J}} {\Delta s}(T)
+  % \right] \,dt
+  % \\
+  0 = \int_0^T \left[
+    \big(J_s(t) - \tilde{J}_s(t)\big) 
+    - J_s''(t) \right]
+  {\Delta s}(t) \,dt
+  + \big(J_s'(T) - \tilde{\tilde{J}}\big) {\Delta s}(T)
+  - J_s'(0) {\Delta s}(0)
+\end{gather*}
+By the arbitraricity of $\Delta s$, it follows that 
+\begin{gather*}
+  J_s(t) - J_s''(t) = \tilde{J}_s(t)
+  \\
+  J_s'(T) = \tilde{\tilde{J}},\quad
+  % \\
+  J_s'(0) = 0
+\end{gather*}
+In practice, we may choose to penalize large gradient values by including a
+parameter $\ell>0$ in the definition of the $W_2^1$ norm, which requires
+the solution of the alternative equation
+\[
+  \int_0^T \left[
+    \tilde{J}_s(t) {\Delta s}(t)
+    + \delta_T(t)\tilde{\tilde{J}} {\Delta s}(T)
+  \right]\,dt
+  =\int_0^T \left[
+    J_s(t) {\Delta s}(t)
+    + \ell J_s'(t) {\Delta s}'(t)
+  \right] \,dt
+\]
+which implies $J_s$ should satisfy
+\begin{gather*}
+  J_s(t) - \ell J_s''(t) = \tilde{J}_s(t)
+  \\
+  J_s'(T) = \tilde{\tilde{J}},\quad
+  % \\
+  J_s'(0) = 0
+\end{gather*}
+This is the formulation of the preconditioning problem that is currently output
+by our preconditioning code \verb+precond.m+, included below in
+Section~\ref{sec:code-listing-precond}.
+
+However, this formulation does not take into account one condition
+from~\eqref{eq:control-set}; for a fixed control $a(t)$, given any two controls
+$s$, $\tilde{s}$ should satisfy $s(0)=s_0=\tilde{s}(0)$, so ${\Delta s}(0) = 0$.
+Further, both satisfy the compatibility condition and hence
+\begin{gather*}
+  % \chi(s_{0},0) = \phi'(s_{0})a(0)b(s_0) + \gamma(s_0, 0)s'(0)
+  % \\
+  % \chi(s_{0},0) = \phi'(s_{0})a(0)b(s_0) + \gamma(s_0, 0)\tilde{s}'(0),
+  % \intertext{which implies}
+  {\Delta s}'(0) = \tilde{s}'(0) - s'(0) = 0
+\end{gather*}
+Since ${\Delta s}(0)$ is not actually arbitrary, we \emph{cannot} assume in
+general that $J_s'(0)=0$.
+Given that $s(0)=s_0$ is fixed, it may instead make sense to impose the
+condition $J_s(0)=0$.
+
+Making a similar 
 
 \section{Model Problem \#1}\label{sec:model-problem-1}
 As a model problem, we will take~\eqref{eq:intro-pde}--\eqref{eq:pde-stefan}
@@ -609,9 +728,19 @@ The test code in \verb+test_true_solution+, included in Section~\ref{sec:code-li
 \lstinputlisting[style=MATLAB-editor]{Functional.m}
 }
 
-\section{grad\_a}\label{sec:code-listing-grad-s}
+\section{grad\_s}\label{sec:code-listing-grad-s}
 {\small
 \lstinputlisting[style=MATLAB-editor]{grad_s.m}
+}
+
+\section{grad\_a}\label{sec:code-listing-grad-a}
+{\small
+\lstinputlisting[style=MATLAB-editor]{grad_a.m}
+}
+
+\section{precond}\label{sec:code-listing-precond}
+{\small
+\lstinputlisting[style=MATLAB-editor]{precond.m}
 }
 
 \section{true\_solution}\label{sec:code-listing-true-solution}
