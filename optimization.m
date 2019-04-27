@@ -56,7 +56,7 @@ function [J_values, s_values, a_values] = optimization(...
     initial_data_parameter_s = 0.6;
   end
   if ~exist('initial_data_parameter_a', 'var')
-    initial_data_parameter_a = 0.6;
+    initial_data_parameter_a = 0;
   end
   % Preconditioning parameters 
   if ~exist('regularization_s', 'var')
@@ -65,6 +65,14 @@ function [J_values, s_values, a_values] = optimization(...
   if ~exist('regularization_a', 'var')
     regularization_a = 0.22;
   end
+  % Choosing coefficients for reconstruction
+  if ~exist('rec_a', 'var')
+    rec_a = 0;
+  end
+   if ~exist('rec_s', 'var')
+    rec_s = 1;
+  end
+  
   
   % If the norm of the update vector is below the threshold below, we will not normalize it.
   norm_update_threshold = 1e-10;
@@ -140,6 +148,7 @@ function [J_values, s_values, a_values] = optimization(...
    
     % Preconditioning for s(t) gradient
     s_update = precond(tmesh, regularization_s, s_update);
+    s_update(1)=0;
     
     % Preconditioning for a(t) gradient
     a_update = precond(tmesh, regularization_a, a_update);
@@ -148,9 +157,9 @@ function [J_values, s_values, a_values] = optimization(...
     sub_iter = 1;
     while true
       % Take trial step along direction vector s_update and a_update
-      s_new = s_old - curr_step_size * s_update;
+      s_new = s_old - rec_s*curr_step_size * s_update;
   
-      a_new = a_old - 0.01*a_update; % Note: avals not updated.
+      a_new = a_old - rec_a*0.01*a_update; % Note: avals not updated.
                                      % Note: the above comment is obviously
                                      % incorrect.
       

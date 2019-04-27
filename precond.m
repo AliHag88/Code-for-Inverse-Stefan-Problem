@@ -10,7 +10,7 @@ Sxint = deval(sol,tmesh);
 
 grad = Sxint(1,:)';
 
-grad(1) = 0;
+% grad(1) = 0;
 end
 
 function res = bc_s(ya, yb)
