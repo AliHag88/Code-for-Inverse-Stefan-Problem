@@ -97,14 +97,15 @@ function [J_values, s_values, a_values] = optimization(...
   % Set final moment
   t_final = 1;
   
-  % Vector of cost functional values
-  J_values = zeros(num_iterations + 1, 1);
+  % Vector of cost functional values. NaNs are used as a
+  % placeholder.
+  J_values = zeros(num_iterations + 1, 1) * NaN;
   
   % Vector of boundary curve iterates
-  s_values = zeros(num_iterations + 1, len_tmesh);
+  s_values = zeros(num_iterations + 1, len_tmesh) * NaN;
   
   % Vector of diffusion coefficient iterates;
-  a_values = zeros(num_iterations + 1, len_tmesh);
+  a_values = zeros(num_iterations + 1, len_tmesh) * NaN;
 
   % Discretization for both for forward and adjoint problem
   xmesh = linspace(0, 1, len_xmesh);  % Space discretization (row)
@@ -206,8 +207,8 @@ function [J_values, s_values, a_values] = optimization(...
         fprintf('||a_k-a_true||/||a_true||=%2.5f.\n', norm(a_new-a_true_values)/norm(a_true_values));
 
         J_values(k) = J_curr;
-        s_old = s_new; s_values(k, :) = s_old;
-        a_old = a_new; a_values(k, :) = a_old;
+        s_old = s_new; s_values(k, :) = s_old; s_values = s_values(1:k, :);
+        a_old = a_new; a_values(k, :) = a_old; a_values = a_values(1:k, :);
         break
       end
       
@@ -221,8 +222,8 @@ function [J_values, s_values, a_values] = optimization(...
         disp('s_final: ');
         disp(s_new);
 
-        s_values(k, :) = s_new;
-        a_values(k, :) = a_new;
+        s_values(k, :) = s_new; s_values = s_values(1:k, :);
+        a_values(k, :) = a_new; a_values = a_values(1:k, :);
         J_values = J_values(1:k);
         return
       end
