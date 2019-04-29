@@ -9,7 +9,7 @@
 
 \usepackage{matlab-prettifier}
 
-\usepackage[inline]{showlabels}
+\usepackage[inline,draft]{showlabels}
 
 \let\institute\address%
 \newtheorem{theorem}{Theorem}
@@ -318,9 +318,9 @@ the forward problem vanishes.
 
 \subsection{Implementation of Gradient Formulae in MATLAB}
 The last step in the implementation is to write the gradient update formula in MATLAB notation.
-For the gradient with respect to $x=s(t)$, we have
+For the differential with respect to $x=s(t)$, we have
 \begin{gather*}
-  J_{s}
+  {\delta J}_{s}
   := \int_0^T \Big[2\beta_1\big(u - \mu\big)u_x + \psi \big(\chi_x - \gamma_x s'  - a (b u_x)_x \big)\Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   \\
   +
@@ -330,14 +330,14 @@ For the gradient with respect to $x=s(t)$, we have
 Under the assumptions used to formulate ``reduced'' models above ($\gamma \equiv
 1$, $\chi \equiv 0$, $b\equiv 1$, $\beta_i \equiv 1$) we have
 \begin{gather*}
-  J_{s}
+  {\delta J}_{s}
   = \int_0^T \Big[2\big(u - \mu\big)u_x - \psi  a u_{xx} \Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   \\
   +
   \left[\lnorm{u(s(T),T) - w(s(T))}^2 + 2 (s(T) - s_*)\right] {\Delta s}(T) 
   - \int_0^T \psi(s(t),t) {\Delta s}'(t) \,dt
 \end{gather*}
-Pursuing integration by parts with respect to time, it follows that the corresponding gradient term is
+Pursuing integration by parts with respect to time, it follows that the corresponding differential term is
 \begin{gather}
   % \int_0^T \Big[2\big(u - \mu\big)u_x - \psi  a u_{xx} \Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   % \\
@@ -348,14 +348,14 @@ Pursuing integration by parts with respect to time, it follows that the correspo
   % - \psi(s(T),T) {\Delta s}(T)
   % + \psi(s(0),0) {\Delta s}(0)
   % \intertext{and hence}
-  % J_{s}
+  % {\delta J}_{s}
   % =\int_0^T \Big[2\big(u - \mu\big)u_x - \psi  a u_{xx} \Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   % \\
   % +
   % \left[\lnorm{u(s(T),T) - w(s(T))}^2 + 2 (s(T) - s_*) - \psi(s(T),T)\right] {\Delta s}(T) 
   % + \int_0^T \D{}{t}\psi(s(t),t) {\Delta s}(t) \,dt
   % \\
-  % J_s
+  % {\delta J}_s
   % = \int_0^T \Big[2\big(u - \mu\big)u_x - \psi  a u_{xx}
   % + \psi_x(s(t),t) s'(t) + \psi_t(s(t),t)\Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   % \\
@@ -365,7 +365,7 @@ Pursuing integration by parts with respect to time, it follows that the correspo
   % \right] {\Delta s}(T)
   % \intertext{Since $\psi(x,T) \equiv 2(u(x,T) - w(x))$, this expression can be
   %   written as}
-  % J_s
+  % {\delta J}_s
   % = \int_0^T \Big[2\big(u - \mu\big)u_x - \psi  a u_{xx}
   % + \psi_x(s(t),t) s'(t) + \psi_t(s(t),t)\Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   % \\
@@ -374,7 +374,7 @@ Pursuing integration by parts with respect to time, it follows that the correspo
   %   \lnorm{u(s(T),T) - w(s(T))}^2 + 2 (s(T) - s_*) - 2(u(s(T),T) - w(s(T))
   % \right] {\Delta s}(T)
   % \intertext{and hence}
-  J_s
+  {\delta J}_s
   =\int_0^T \Big[2\big(u - \mu\big)u_x - \psi  a u_{xx}
   + \psi_x s'(t) + \psi_t\Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   \\
@@ -386,9 +386,9 @@ Pursuing integration by parts with respect to time, it follows that the correspo
 Interpreting the integrand in the first term as a pointwise function is one way
 to write the gradient calculation in discrete form; this is the routine implemented in \verb+grad_s+, included in Section~\ref{sec:code-listing-grad-s}.
 
-The gradient with respect to $a(t)$ is given by
+The differential with respect to $a(t)$ is given by
 \begin{gather*}
-  \int_0^T {\Delta a} \left[
+  \delta J_a := \int_0^T {\Delta a} \left[
     \int_0^{s(t)}  u_{xx} \psi \,dx
     - [u_x \psi]_{x=0}
     - [u_x \psi]_{x=s(t)}
@@ -401,7 +401,7 @@ Note that
   + u_x(s(t),t) \psi(s(t),t)
   - u_x(0,t) \psi(0,t)
   \intertext{so the gradient with respect to $a$ can be written in the form}
-    - \int_0^{s(t)}  u_{x} \psi_x \,dx
+    J_a(t) = - \int_0^{s(t)}  u_{x} \psi_x \,dx
     - 2 [u_x \psi]_{x=0}\label{eq:gradient-wrt-a}
 \end{gather}
 
@@ -426,9 +426,9 @@ the gradient $J_s$ be in the form
     \right]\,dt
     + o({\Delta s})
 \end{align*}
-but the gradient in eq.~\eqref{eq:gradient-wrt-s} has the form
+but the differential of eq.~\eqref{eq:gradient-wrt-s} has the form
 \[
-  \int_0^T \tilde{J}_s(t) {\Delta s}(t) \,dt + \tilde{\tilde{J}} {\Delta s}(T)
+  {\delta J}_s = \int_0^T \tilde{J}_s(t) {\Delta s}(t) \,dt + \tilde{\tilde{J}} {\Delta s}(T)
 \]
 Note that the above functional \emph{is} formally a linear functional over
 $\scontrolspace{}$; functions in $\scontrolspace(0,T)$ are continuous, so the
@@ -443,6 +443,7 @@ preconditioning, the original set of ``$L_2$'' gradients do not give a clear
 enough search direction for the gradient descent process.
 The geometric interpretation of this can be thought of as a mathematically motivated
 preconditioning or smoothing operation. 
+
 Since the gradient is used to derive the search direction in the gradient
 descent algorithm, one should require that the action of $J_s$ on the increment
 ${\Delta s}$ be unchanged after this projection.
@@ -589,7 +590,6 @@ by our preconditioning code \verb+precond.m+, included below in
 Section~\ref{sec:code-listing-precond}; the original problem is selected by
 choosing \verb+mode+ to be 1, and the updated problem is selected by choosing
 \verb+mode+ to be 2.
-
 
 \section{Model Problem \#1}\label{sec:model-problem-1}
 
