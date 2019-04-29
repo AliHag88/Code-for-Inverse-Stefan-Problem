@@ -67,7 +67,7 @@ function [J_values, s_values, a_values] = optimization(...
   end
   % Choosing coefficients for reconstruction
   if ~exist('rec_a', 'var')
-    rec_a = 1;
+    rec_a = 0;
   end
    if ~exist('rec_s', 'var')
     rec_s = 1;
@@ -190,8 +190,8 @@ function [J_values, s_values, a_values] = optimization(...
         fprintf('Functional value J_{%d} == %2.5f.\n', k, J_curr);
         fprintf('||s_k-s_true||=%2.5f.\n', norm(s_new-s_true(tmesh)));
         fprintf('||a_k-a_true||=%2.5f.\n', norm(a_new-a_true(tmesh)));
-        fprintf('||a_k-a_true||/||a_true||+||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true(tmesh))/norm(s_true(tmesh))+ ...
-        norm(a_new-a_true(tmesh))/norm(a_true(tmesh)));
+        fprintf('||a_k-a_true||=%2.5f.\n', norm(a_new-a_true(tmesh))/norm(a_true))+ ...
+        norm(a_new-a_true(tmesh))/norm(a_true));
         
         J_values(k) = J_curr;
         s_old = s_new; s_values(k, :) = s_old;
@@ -206,8 +206,6 @@ function [J_values, s_values, a_values] = optimization(...
         fprintf('Functional value J_{%d} == %2.5f.\n', k, J_curr);
         fprintf('||s_k-s_true||=%2.5f.\n', norm(s_new-s_true(tmesh)));
         fprintf('||a_k-a_true||=%2.5f.\n', norm(a_new-a_true(tmesh)));
-        fprintf('||a_k-a_true||/||a_true||+||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true(tmesh))/norm(s_true(tmesh))+ ...
-        norm(a_new-a_true(tmesh))/norm(a_true(tmesh)));
         disp('s_final: ');
         disp(s_new);
        
