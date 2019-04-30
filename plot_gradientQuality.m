@@ -1,4 +1,4 @@
-function [] = plot_gradientQuality(generate_data, generate_plots, Nx, Nt)
+function [] = plot_gradientQuality(generate_data, generate_plots, Nx, Nt, n_fd_epsilon)
 
 % Set default values of the input arguments
 if ~exist('generate_data', 'var')
@@ -8,10 +8,14 @@ if ~exist('generate_plots', 'var')
     generate_plots = false;
 end
 if ~exist('Nx', 'var')
-    Nx = 100;
+    Nx = 40;
 end
 if ~exist('Nt', 'var')
-    Nt = 40;
+    Nt = Nx^2;
+end
+% Number of iterations to test
+if ~exist('n_fd_epsilon', 'var')
+    n_fd_epsilon = 20;
 end
 
 % Fixed parameters for example
@@ -33,8 +37,6 @@ output_size = [1, 9];
 
 % Generate data
 if generate_data
-% Number of iterations to test
-n_fd_epsilon = 20;
 
 % Initialize storage
 fd_epsilon_values = linspace(eps(0), 1e-1, n_fd_epsilon)';
