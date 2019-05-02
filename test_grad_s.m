@@ -19,6 +19,7 @@ function [error_out_grad_s, error_out_precond_s] = test_grad_s(len_xmesh, len_tm
   initial_data_parameter_a = 0.6;
   norm_update_threshold = 1e-10;
   L_s = 0.6;
+  s_precond_mode = 1;
   
   % Discretization for both for forward and adjoint problem
   xmesh = linspace(0, 1, len_xmesh);  % Space discretization (row)
@@ -51,7 +52,7 @@ function [error_out_grad_s, error_out_precond_s] = test_grad_s(len_xmesh, len_tm
   s_update_before = s_update;
   
   % Preconditioning for s(t) gradient
-  s_update_after = precond(tmesh, L_s, s_update);
+  s_update_after = precond(s_precond_mode, L_s, tmesh, s_update);
   
   test_grad_s_datafile = 'test_grad_s.mat';
   

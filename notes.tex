@@ -1,4 +1,4 @@
-\documentclass[letterpaper, 10pt]{amsart}
+\documentclass[letterpaper, 10pt, draft]{amsart}
 
 \usepackage[T1]{fontenc}
 \usepackage{graphicx, baskervald}
@@ -89,18 +89,32 @@ Under these conditions, we are required to solve an \emph{inverse} Stefan proble
     }
 \]
 that satisfy conditions~\eqref{eq:intro-pde}--\eqref{eq:pde-finaltemp}.
-ISP is not well posed in the sense of Hadamard: the solution may not exist; if it exists, it may not be unique, and in general it does not exhibit continuous dependence on the data.
-The main methods available for ISP are based on a variational formulation, Frechet differentiability, and iterative gradient methods.
-We cite recent papers~\cite{abdulla13,abdulla15} and the monograph~\cite{goldman97} for a list of references.
-The established variational methods in earlier works fail in general to address two issues:
+ISP is not well posed in the sense of Hadamard: the solution may not exist; if
+it exists, it may not be unique, and in general it does not exhibit continuous
+dependence on the data.
+The main methods available for ISP are based on a variational formulation,
+Frechet differentiability, and iterative gradient methods.
+We cite recent papers~\cite{abdulla13,abdulla15} and the
+monograph~\cite{goldman97} for a list of references.
+The established variational methods in earlier works fail in general to address
+two issues:
 \begin{itemize}
-    \item The solution of ISP does not depend continuously on the phase transition temperature $\mu(t)$ from~\eqref{eq:pde-freebound}.
-    A small perturbation of the phase transition temperature may imply significant change of the solution to the inverse Stefan problem.
-    \item In the existing formulation, at each step of the iterative method a Stefan problem must be solved (that is, for instance, the unknown heat flux $g$ is given, and the corresponding $u$ and $s$ are calculated) which incurs a high computational cost.
+    \item The solution of ISP does not depend continuously on the phase
+      transition temperature $\mu(t)$ from~\eqref{eq:pde-freebound}.
+    A small perturbation of the phase transition temperature may imply
+    significant change of the solution to the inverse Stefan problem.
+    \item In the existing formulation, at each step of the iterative method a
+      Stefan problem must be solved (that is, for instance, the unknown heat
+      flux $g$ is given, and the corresponding $u$ and $s$ are calculated) which
+      incurs a high computational cost.
 \end{itemize}
 
-A new method developed in~\cite{abdulla13,abdulla15} addresses both issues with a new variational formulation.
-The key insight is that the free boundary problem has a similar nature to an inverse problem, so putting them into the same framework gives a conceptually clear formulation of the problem; proving existence, approximation, and differentiability is a resulting challenge.
+A new method developed in~\cite{abdulla13,abdulla15} addresses both issues with
+a new variational formulation.
+The key insight is that the free boundary problem has a similar nature to an
+inverse problem, so putting them into the same framework gives a conceptually
+clear formulation of the problem; proving existence, approximation, and
+differentiability is a resulting challenge.
 Existence of the optimal control and the convergence of the sequence of discrete
 optimal control problems to the continuous optimal control problem was proved
 in~\cite{abdulla13,abdulla15}.
@@ -108,7 +122,10 @@ In~\cite{abdulla16,abdulla17}, Frechet differentiability of the new variational
 formulation was developed, and a full result showing Frechet differentiability
 and the form of the Frechet differential
 with respect to the free boundary, sources, and coefficients were proven.
-Our goal in this work is to document the implementation in MATLAB using the built-in PDEPE solver.
+Lastly, the gradient method was implemented in~\cite{abdulla18} and numerical
+results were proven.
+Our goal in this work is to extend the implementation to the identification of
+the diffusion coefficient $a(t)$ and document the implementation in MATLAB using the built-in PDEPE solver.
 
 The rest of this note is as follows:
 
@@ -418,7 +435,14 @@ $\scontrolspace{}$; functions in $\scontrolspace(0,T)$ are continuous, so the
 delta function is a member of the dual space.
 By Reisz representation formula, any such functional over $\scontrolspace$ can
 be written in the required form; what remains is to numerically approximate the
-element $J_s$ above, which amounts to a projection step.
+Reisz element $J_s$ of the gradient, which we refer to as \emph{preconditioning}
+(in particular, Sobolev preconditioning) the gradient.
+
+This process is shown to be essential for the numerical results; without
+preconditioning, the original set of ``$L_2$'' gradients do not give a clear
+enough search direction for the gradient descent process.
+The geometric interpretation of this can be thought of as a mathematically motivated
+preconditioning or smoothing operation. 
 Since the gradient is used to derive the search direction in the gradient
 descent algorithm, one should require that the action of $J_s$ on the increment
 ${\Delta s}$ be unchanged after this projection.
@@ -474,22 +498,32 @@ the solution of the alternative equation
   \right]\,dt
   =\int_0^T \left[
     J_s(t) {\Delta s}(t)
-    + \ell J_s'(t) {\Delta s}'(t)
+    + \ell^2 J_s'(t) {\Delta s}'(t)
   \right] \,dt
 \]
 which implies $J_s$ should satisfy
-\begin{gather*}
-  J_s(t) - \ell J_s''(t) = \tilde{J}_s(t)
-  \\
-  J_s'(T) = \tilde{\tilde{J}},\quad
-  % \\
-  J_s'(0) = 0
-\end{gather*}
-This is the formulation of the preconditioning problem that is currently output
-by our preconditioning code \verb+precond.m+, included below in
-Section~\ref{sec:code-listing-precond}.
-
-However, this formulation does not take into account one condition
+\begin{equation*}
+  \begin{cases}
+    J_s(t) - \ell^2 J_s''(t) = \tilde{J}_s(t)
+    \\
+    J_s'(T) = \tilde{\tilde{J}},\quad
+    % \\
+    J_s'(0) = 0
+  \end{cases}
+\end{equation*}
+Note that the formulation used to approximate the Reisz element in~\cite{abdulla18} would read
+\begin{equation*}
+  \begin{cases}
+    J_s(t) - \ell^2 J_s''(t) = \tilde{J}_s(t) + \tilde{\tilde{J}}
+    \\
+    J_s'(T) = 0,\quad
+    % \\
+    J_s'(0) = 0
+  \end{cases}
+\end{equation*}
+in our notation, which will give significantly different results whenever
+$\tilde{\tilde{J}}\neq 0$.
+Even this formulation does not take into account one condition
 from~\eqref{eq:control-set}; for a fixed control $a(t)$, given any two controls
 $s$, $\tilde{s}$ should satisfy $s(0)=s_0=\tilde{s}(0)$, so ${\Delta s}(0) = 0$.
 Further, both satisfy the compatibility condition and hence
@@ -500,14 +534,67 @@ Further, both satisfy the compatibility condition and hence
   % \intertext{which implies}
   {\Delta s}'(0) = \tilde{s}'(0) - s'(0) = 0
 \end{gather*}
-Since ${\Delta s}(0)$ is not actually arbitrary, we \emph{cannot} assume in
-general that $J_s'(0)=0$.
-Given that $s(0)=s_0$ is fixed, it may instead make sense to impose the
-condition $J_s(0)=0$.
+Since ${\Delta s}(0)$ is not actually arbitrary, we are \emph{not}, in general,
+required to that $J_s'(0)=0$.
+Given that $s(0)=s_0$ is fixed, it is justified to instead solve
+\begin{equation}
+  \begin{cases}
+  J_s(t) - \ell^2 J_s''(t) = \tilde{J}_s(t)
+  \\
+  J_s'(T) = \tilde{\tilde{J}},\quad
+  % \\
+  J_s(0) = 0
+\end{cases}\label{eq:gradient-s-precond}
+\end{equation}
 
-Making a similar 
+Making a similar calculation for $a(t)$, we see that the relationship between
+the preconditioned $(H_1)$ gradient $J_a$ and the original $(L_2)$ gradient
+$\tilde{J}_a$ should be
+\begin{equation}
+  \begin{cases}
+  J_a(t) - \ell^2 J_a''(t) = \tilde{J}_a(t)\nonumber
+  \\
+  J_a'(T) = 0,\quad
+  % \\
+  J_a(0) = 0
+  \end{cases}\label{eq:gradient-a-precond}
+\end{equation}
+As in the previous case, the Dirichlet condition at $x=0$ is justified by the
+lack of arbitrarity in $a(0)$ due to~\eqref{eq:control-set}.
+
+Note that in order to solve these problems numerically, they are reformulated as
+a first order system; for example letting $y_1 = J_s(t)$, $y_2 = y_1'(t)$,
+eq.~\eqref{eq:gradient-s-precond} becomes
+\begin{equation}
+  \begin{cases}
+    \begin{bmatrix}
+      y_1
+      \\
+      y_2
+    \end{bmatrix}'
+    = \begin{bmatrix}
+      y_2
+      \\
+      \frac{y_1 - \tilde{J}_s(t)}{\ell^2}
+    \end{bmatrix}
+    \\
+    y_2(T) = \tilde{\tilde{J}}
+    \\
+    y_1(0) = 0
+  \end{cases}
+\end{equation}
+
+This is the formulation of the preconditioning problem that is currently output
+by our preconditioning code \verb+precond.m+, included below in
+Section~\ref{sec:code-listing-precond}; the original problem is selected by
+choosing \verb+mode+ to be 1, and the updated problem is selected by choosing
+\verb+mode+ to be 2.
+
 
 \section{Model Problem \#1}\label{sec:model-problem-1}
+
+\subsection{Problem Setup and Generation of Test Data}
+
 As a model problem, we will take~\eqref{eq:intro-pde}--\eqref{eq:pde-stefan}
 with $\beta_i \equiv 1$, $b\equiv 1$, $\chi \equiv 0$, $\gamma \equiv 1$, and
 $f\equiv 0$:
@@ -564,10 +651,41 @@ before starting the gradient iteration process.
 In particular, the analytic solution is not subsequently used when considering
 the problem with synthetic data.
 
-This process, along with the selection of an initial approach and other problem
-parameters, is encapsulated in the function \verb+initial_setup+, included below
-in Section~\ref{sec:code-listing-initial-setup}
+As an initial approach for $s(t)$ and $a(t)$, and given the analytic solutions
+$s_{\text{true}}(t)$, $a_{\text{true}}(t)$, we define
+\begin{equation}
+  s_{\text{linear}}(t) = s_0 + \frac{t}{T}\left(s_{\text{true}}(T) - s_0\right)
+\end{equation}
+where it is assumed that a measurement (or an approximation) of the
+free boundary is available at the final moment.
+For any fixed parameter $\lambda_s$ we set
+\begin{equation}
+  s_{\text{initial}}(t) = \lambda_s s_{\text{linear}}(t) + \big(1-\lambda_s\big)s_{\text{true}}(t)
+\end{equation}
+Since the gradient descent method is local in nature, this choice of the initial
+approach allows the empirical determination of the convergence region.
+Since our example has a constant ``true'' function $a(t)$, we give a quadratic
+perturbation to this function in order to deduce similar information for this
+control; hence, for any $\lambda_a$ we define
+\begin{equation}
+  a_{\text{initial}}(t) = a_{\text{true}}
+  + \frac{4}{T}\lambda_a t (T-t)
+\end{equation}
+Note that
+\[
+  \max_t \vert a_{\text{initial}} - a_{\text{true}} \vert
+  = \frac{4}{T} \vert \lambda_a \vert t (T-t) \vert_{t=T/2}
+  = \vert \lambda_a \vert
+\]
+In particular, $\lambda_a$ should be bounded from below in order to ensure the
+ellipticity condition $a(t) \geq a_0$ is preserved, and $\lambda_s$ cannot be
+chosen arbitrarily, since we require $s(t) \geq \delta > 0$.
 
+The process of deriving synthetic data and choosing the initial approach along
+with any other parameters is encapsulated in the function \verb+initial_setup+,
+included below in Section~\ref{sec:code-listing-initial-setup}.
+
+\subsection{Tikhonov \& Samarskii Example}
 A classical model problem in the form considered can be found in the text by Tikhonov \& Samarskii~\cite[Ch.\ II, App.\ IV, pp.\ 283--288]{tikhonov63}.
 The problem originates in the following: find \(\big(u, \xi{}\big)\) satisfying
 \begin{gather}

@@ -2,7 +2,8 @@ function [J_values, s_values, a_values] = optimization(...
     len_xmesh, len_tmesh, ...
     tolerance, num_iterations, num_sub_iterations, use_synthetic_data, ...
     initial_data_parameter_s, initial_data_parameter_a, ...
-    regularization_s, regularization_a, do_visualization)
+    sobolev_preconditioning_s, sobolev_preconditioning_a, ...
+    reconstruct_s, reconstruct_a, do_visualization)
   % optimization: Run ISP example
   % Input Arguments:
   %    - len_xmesh: Number of space grid points. Default: 20
@@ -17,6 +18,8 @@ function [J_values, s_values, a_values] = optimization(...
   %      Default: 0 (s_initial == s_true or a_initial == a_true)
   %    - regularization_{s,a}: Weight given to regularization term during
   %      gradient descent process.
+  %    - reconstruct_{s,a}: Boolean values to select whether to reconstruct s
+  %      and/or a. If false, the initial approach will be used at each iteration.
   %    - do_visualization: Set to true to emit visualizations during the optimization process.
   %      Default: false
   % Output Arguments:
@@ -58,19 +61,19 @@ function [J_values, s_values, a_values] = optimization(...
   if ~exist('initial_data_parameter_a', 'var')
     initial_data_parameter_a = 0;
   end
-  % Preconditioning parameters 
-  if ~exist('regularization_s', 'var')
-    regularization_s = 0.5;
+  % Preconditioning parameters
+  if ~exist('sobolev_preconditioning_s', 'var')
+    sobolev_preconditioning_s = 0.5;
   end
-  if ~exist('regularization_a', 'var')
-    regularization_a = 0.22;
+  if ~exist('sobolev_preconditioning_a', 'var')
+    sobolev_preconditioning_a = 0.22;
   end
   % Choosing coefficients for reconstruction
-  if ~exist('rec_a', 'var')
-    rec_a = 1;
+  if ~exist('reconstruct_a', 'var')
+    reconstruct_a = 1;
   end
-   if ~exist('rec_s', 'var')
-    rec_s = 1;
+   if ~exist('reconstruct_s', 'var')
+    reconstruct_s = 1;
   end
   
   
@@ -81,6 +84,13 @@ function [J_values, s_values, a_values] = optimization(...
   svals_minimum_threshold = 1e-4;
   avals_minimum_threshold = 1e-4;
 
+  % Preconditioning "mode".
+  % Select == 1 to impose homogeneous Neumann condition (the "original" flavor)
+  % Select == 2 to give a Neumann condition on the right-hand side and a
+  %             homogeneous Dirichlet condition on the left-hand side
+  s_precond_mode = 2;
+  a_precond_mode = 2;
+  
   % Counter for number of iterations
   k = 1;
   
@@ -100,8 +110,12 @@ function [J_values, s_values, a_values] = optimization(...
   xmesh = linspace(0, 1, len_xmesh);  % Space discretization (row)
   tmesh = linspace(0, t_final, len_tmesh)'; % Time discretization (column)
 
+  % Take "true" (analytic) values of s and a
   [~, ~, ~, ~, ~, s_true, ~, a_true] = true_solution(tmesh);
- 
+
+  % Calculate values of analytic solution on time grid
+  s_true_values = s_true(tmesh);
+  a_true_values = a_true(tmesh);
   
   % Initial setup for solver (all tunable parameters should be set here)
   [max_step_size, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = initial_setup(tmesh, xmesh, use_synthetic_data, initial_data_parameter_s, initial_data_parameter_a);
@@ -135,9 +149,10 @@ function [J_values, s_values, a_values] = optimization(...
     end
       
     % Calculate update direction vector s_update
-    s_update = grad_s(tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star);
-    if norm(s_update) > norm_update_threshold % Only normalize if the update vector has nonzero norm.
-        s_update = s_update/ norm(s_update);
+    s_update, s_update_T = grad_s(tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star);
+    % Only normalize if the update vector has numerically nonzero norm.
+    if norm(s_update) > norm_update_threshold
+        s_update = s_update / norm(s_update);
     end
     
     % Calculate update direction vector a_update
@@ -147,19 +162,18 @@ function [J_values, s_values, a_values] = optimization(...
     end
    
     % Preconditioning for s(t) gradient
-    s_update = precond(tmesh, regularization_s, s_update);
-    s_update(1)=0;
+    s_update = precond(s_precond_mode, sobolev_preconditioning_s, tmesh, s_update, s_update_T);
     
     % Preconditioning for a(t) gradient
-    a_update = precond(tmesh, regularization_a, a_update);
+    a_update = precond(a_precond_mode, sobolev_preconditioning_a, tmesh, a_update);
     
     curr_step_size = max_step_size;
     sub_iter = 1;
     while true
       % Take trial step along direction vector s_update and a_update
-      s_new = s_old - rec_s*curr_step_size * s_update;
+      s_new = s_old - reconstruct_s * curr_step_size * s_update;
   
-      a_new = a_old - rec_a*0.01*a_update; % Note: avals not updated.
+      a_new = a_old - reconstruct_a * 0.01 * a_update; % Note: avals not updated.
                                      % Note: the above comment is obviously
                                      % incorrect.
       
@@ -182,17 +196,15 @@ function [J_values, s_values, a_values] = optimization(...
         Functional(xmesh, tmesh, s_new, a_new, ...
                    g, u_true_0,  s_star, w_meas, mu_meas...
                    );
-      
+
       % If we've found a step that decreases the functional value, break out of
       % the loop after saving s_new and a_new over s_old and a_old.
       if J_curr < J_values(k-1)
         fprintf('Found a decreasing step after %d sub-iterations.\n', sub_iter);
         fprintf('Functional value J_{%d} == %2.5f.\n', k, J_curr);
-        fprintf('||s_k-s_true||=%2.5f.\n', norm(s_new-s_true(tmesh)));
-        fprintf('||a_k-a_true||=%2.5f.\n', norm(a_new-a_true(tmesh)));
-        fprintf('||a_k-a_true||/||a_true||+||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true(tmesh))/norm(s_true(tmesh))+ ...
-        norm(a_new-a_true(tmesh))/norm(a_true(tmesh)));
-        
+        fprintf('||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true_values)/norm(s_true_values));
+        fprintf('||a_k-a_true||/||a_true||=%2.5f.\n', norm(a_new-a_true_values)/norm(a_true_values));
+
         J_values(k) = J_curr;
         s_old = s_new; s_values(k, :) = s_old;
         a_old = a_new; a_values(k, :) = a_old;
@@ -204,22 +216,19 @@ function [J_values, s_values, a_values] = optimization(...
       if sub_iter >= num_sub_iterations
         fprintf('Failed to find appropriate step size in %d sub-iterations.\n', sub_iter);
         fprintf('Functional value J_{%d} == %2.5f.\n', k, J_curr);
-        fprintf('||s_k-s_true||=%2.5f.\n', norm(s_new-s_true(tmesh)));
-        fprintf('||a_k-a_true||=%2.5f.\n', norm(a_new-a_true(tmesh)));
-        fprintf('||a_k-a_true||/||a_true||+||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true(tmesh))/norm(s_true(tmesh))+ ...
-        norm(a_new-a_true(tmesh))/norm(a_true(tmesh)));
+        fprintf('||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true_values)/norm(s_true_values));
+        fprintf('||a_k-a_true||/||a_true||=%2.5f.\n', norm(a_new-a_true_values)/norm(a_true_values));
         disp('s_final: ');
         disp(s_new);
-       
-             
+
         s_values(k, :) = s_new;
         a_values(k, :) = a_new;
         J_values = J_values(1:k);
         return
       end
       
-      % Reduce step size and try again. This step size selection method is precisely the 
-      % Armijo rule with bisection at each trial step.
+      % Reduce step size and try again. This step size selection method is
+      % precisely the Armijo rule with bisection at each trial step.
       curr_step_size = curr_step_size / 2;
       sub_iter = sub_iter + 1;
     end % While loop for sub step
@@ -238,8 +247,6 @@ function [J_values, s_values, a_values] = optimization(...
         break
     end
 
-   
-    
     % Update adjoint
     [psi_t_S, psi_x_S, psi_S, ~] = ...
         Adjoint(xmesh, tmesh, s_old, a_old, u_T, w_meas, u_S, mu_meas);
