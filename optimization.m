@@ -29,56 +29,14 @@ function [J_values, s_values, a_values] = optimization(...
   % Note that for the last two output arguments, columns correspond to the iteration number
   % and each row is a separate control vector.
 
-  % Set default arguments
-  if ~exist('len_xmesh', 'var')
-    len_xmesh = 100;
-  end
-  if ~exist('len_tmesh', 'var')
-    len_tmesh = 40;
-  end
-  if ~exist('tolerance', 'var')
-    tolerance = 1e-9;
-  end
-  
-  % Flags below change the optimization routine
-  if ~exist('num_iterations', 'var')
-    num_iterations = 40;
-  end
-  if ~exist('num_sub_iterations', 'var')
-    num_sub_iterations = 6;
-  end
-  if ~exist('do_visualization', 'var')
-    do_visualization = true;
-  end
-  
-  % See initial_setup.m for the following parameters
-  if ~exist('use_synthetic_data', 'var')
-    use_synthetic_data = true;
-  end
-  if ~exist('initial_data_parameter_s', 'var')
-    initial_data_parameter_s = 1.9;
-  end
-  if ~exist('initial_data_parameter_a', 'var')
-    initial_data_parameter_a = 0;
-  end
-  % Preconditioning parameters
-  if ~exist('sobolev_preconditioning_s', 'var')
-    sobolev_preconditioning_s = 0.5;
-  end
-  if ~exist('sobolev_preconditioning_a', 'var')
-    sobolev_preconditioning_a = 0.22;
-  end
-  % Choosing coefficients for reconstruction
-  if ~exist('reconstruct_a', 'var')
-    reconstruct_a = 1;
-  end
-   if ~exist('reconstruct_s', 'var')
-    reconstruct_s = 1;
-  end
-  
-  
+  % Call code to set default values of parameters.
+  optimization_parameter_defaults;
+
   % If the norm of the update vector is below the threshold below, we will not normalize it.
   norm_update_threshold = 1e-10;
+
+  % Gradient step size for a(t) is fixed
+  curr_a_step_size = 0.01;
   
   % Thresholds for minimum values of s(t) and a(t)
   svals_minimum_threshold = 1e-4;
@@ -90,20 +48,20 @@ function [J_values, s_values, a_values] = optimization(...
   %             homogeneous Dirichlet condition on the left-hand side
   s_precond_mode = 2;
   a_precond_mode = 2;
-  
+
   % Counter for number of iterations
   k = 1;
-  
+
   % Set final moment
   t_final = 1;
-  
+
   % Vector of cost functional values. NaNs are used as a
   % placeholder.
   J_values = zeros(num_iterations + 1, 1) * NaN;
-  
+
   % Vector of boundary curve iterates
   s_values = zeros(num_iterations + 1, len_tmesh) * NaN;
-  
+
   % Vector of diffusion coefficient iterates;
   a_values = zeros(num_iterations + 1, len_tmesh) * NaN;
 
@@ -117,7 +75,7 @@ function [J_values, s_values, a_values] = optimization(...
   % Calculate values of analytic solution on time grid
   s_true_values = s_true(tmesh);
   a_true_values = a_true(tmesh);
-  
+
   % Initial setup for solver (all tunable parameters should be set here)
   [max_step_size, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = initial_setup(tmesh, xmesh, use_synthetic_data, initial_data_parameter_s, initial_data_parameter_a);
 
@@ -128,7 +86,7 @@ function [J_values, s_values, a_values] = optimization(...
   % Store initial approach to s_values and a_values
   s_values(k, :) = s_old;
   a_values(k, :) = a_old;
-  
+
   % Calculate solution of forward problem and functional value at initial approach
   [au_xx_S, u_x_S, u_S, u_T, u, J_values(k)] = ...
     Functional(xmesh, tmesh, s_old, a_old, g, u_true_0, s_star, w_meas, mu_meas);
@@ -138,8 +96,8 @@ function [J_values, s_values, a_values] = optimization(...
   % Calculate solution of adjoint problem
   [psi_t_S, psi_x_S, psi_S, psi] = ...
     Adjoint(xmesh, tmesh, s_old, a_old, u_T, w_meas, u_S, mu_meas);
-  
-  
+
+
   % Main Optimization Loop
   while k <= num_iterations
     k = k + 1;
@@ -148,36 +106,35 @@ function [J_values, s_values, a_values] = optimization(...
       fprintf('Invalid state or adjoint at step %d.\n', k);
       break
     end
-      
+
     % Calculate update direction vector s_update
     s_update, s_update_T = grad_s(tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star);
     % Only normalize if the update vector has numerically nonzero norm.
     if norm(s_update) > norm_update_threshold
         s_update = s_update / norm(s_update);
     end
-    
+
     % Calculate update direction vector a_update
     a_update = grad_a(u,psi,tmesh,xmesh,s_old);
-    if norm(a_update) > 1e-10
+    % Only normalize if the update vector has nonzero norm.
+    if norm(a_update) > norm_update_threshold
         a_update = a_update / norm(a_update);
     end
-   
+
     % Preconditioning for s(t) gradient
     s_update = precond(s_precond_mode, sobolev_preconditioning_s, tmesh, s_update, s_update_T);
-    
+
     % Preconditioning for a(t) gradient
     a_update = precond(a_precond_mode, sobolev_preconditioning_a, tmesh, a_update);
-    
+
     curr_step_size = max_step_size;
     sub_iter = 1;
     while true
       % Take trial step along direction vector s_update and a_update
       s_new = s_old - reconstruct_s * curr_step_size * s_update;
-  
-      a_new = a_old - reconstruct_a * 0.01 * a_update; % Note: avals not updated.
-                                     % Note: the above comment is obviously
-                                     % incorrect.
-      
+
+      a_new = a_old - reconstruct_a * curr_a_step_size * a_update;
+
       % If svals or avals becomes to small, reduce the step size and try again
       if any(s_new < svals_minimum_threshold) || any(a_new < avals_minimum_threshold)  
         if sub_iter >= num_sub_iterations
@@ -191,7 +148,7 @@ function [J_values, s_values, a_values] = optimization(...
         sub_iter = sub_iter + 1;
         continue
       end
-      
+
       % Calculate functional value and state vector at new svals and avals vectors
       [au_xx_S, u_x_S, u_S, u_T, u, J_curr] = ...
         Functional(xmesh, tmesh, s_new, a_new, ...
@@ -211,7 +168,7 @@ function [J_values, s_values, a_values] = optimization(...
         a_old = a_new; a_values(k, :) = a_old; a_values = a_values(1:k, :);
         break
       end
-      
+
       % If we can't find a step size that decreases the functional value,
       % Save the final iterate and bail out of the gradient descent process.
       if sub_iter >= num_sub_iterations
@@ -227,13 +184,13 @@ function [J_values, s_values, a_values] = optimization(...
         J_values = J_values(1:k);
         return
       end
-      
+
       % Reduce step size and try again. This step size selection method is
       % precisely the Armijo rule with bisection at each trial step.
       curr_step_size = curr_step_size / 2;
       sub_iter = sub_iter + 1;
     end % While loop for sub step
-    
+
     % Do visualization if selected
     if do_visualization
         pause_time = 0; % Units for pause_time are seconds
