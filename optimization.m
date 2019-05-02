@@ -32,28 +32,8 @@ function [J_values, s_values, a_values] = optimization(...
   % Call code to set default values of parameters.
   optimization_parameter_defaults;
 
-  % If the norm of the update vector is below the threshold below, we will not normalize it.
-  norm_update_threshold = 1e-10;
-
-  % Gradient step size for a(t) is fixed
-  curr_a_step_size = 0.01;
-  
-  % Thresholds for minimum values of s(t) and a(t)
-  svals_minimum_threshold = 1e-4;
-  avals_minimum_threshold = 1e-4;
-
-  % Preconditioning "mode".
-  % Select == 1 to impose homogeneous Neumann condition (the "original" flavor)
-  % Select == 2 to give a Neumann condition on the right-hand side and a
-  %             homogeneous Dirichlet condition on the left-hand side
-  s_precond_mode = 2;
-  a_precond_mode = 2;
-
   % Counter for number of iterations
   k = 1;
-
-  % Set final moment
-  t_final = 1;
 
   % Vector of cost functional values. NaNs are used as a
   % placeholder.
@@ -135,18 +115,26 @@ function [J_values, s_values, a_values] = optimization(...
 
       a_new = a_old - reconstruct_a * curr_a_step_size * a_update;
 
-      % If svals or avals becomes to small, reduce the step size and try again
-      if any(s_new < svals_minimum_threshold) || any(a_new < avals_minimum_threshold)  
-        if sub_iter >= num_sub_iterations
-            fprintf('Singularity developed in s(t) or a(t) after %d sub-iteration(s).\n', sub_iter);
-            fprintf('Stopping gradient descent at k=%d.\n', k);
-            disp('s_final: ');
-            disp(s_new)
-            break
-        end
+      % If we can't find a step size that decreases the functional value,
+      % Save the final iterate and bail out of the gradient descent process.
+      if sub_iter > num_sub_iterations
+        fprintf('Failed to find appropriate step size in %d sub-iterations.\n', sub_iter);
+        reportInLoop(k, J_curr, s_new, s_true_values, a_new, a_true_values);
+
+        % Save current values and "trim" output arrays to size
+        J_values = J_values(1:k);
+        s_values(k, :) = s_new; s_values = s_values(1:k, :);
+        a_values(k, :) = a_new; a_values = a_values(1:k, :);
+        return % Exit from optimization function
+      end
+
+      % If svals or avals becomes to small, reduce the step size and try again.
+      % This has to be completed _before_ calculating the functional in order to
+      % ensure the functional is well defined.
+      if any(s_new < svals_minimum_threshold) || any(a_new < avals_minimum_threshold)
         curr_step_size = curr_step_size / 2;
         sub_iter = sub_iter + 1;
-        continue
+        continue % Return to top of sub-iteration loop
       end
 
       % Calculate functional value and state vector at new svals and avals vectors
@@ -159,30 +147,12 @@ function [J_values, s_values, a_values] = optimization(...
       % the loop after saving s_new and a_new over s_old and a_old.
       if J_curr < J_values(k-1)
         fprintf('Found a decreasing step after %d sub-iterations.\n', sub_iter);
-        fprintf('Functional value J_{%d} == %2.5f.\n', k, J_curr);
-        fprintf('||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true_values)/norm(s_true_values));
-        fprintf('||a_k-a_true||/||a_true||=%2.5f.\n', norm(a_new-a_true_values)/norm(a_true_values));
+        reportInLoop(k, J_curr, s_new, s_true_values, a_new, a_true_values);
 
-        J_values(k) = J_curr;
-        s_old = s_new; s_values(k, :) = s_old; s_values = s_values(1:k, :);
-        a_old = a_new; a_values(k, :) = a_old; a_values = a_values(1:k, :);
-        break
-      end
-
-      % If we can't find a step size that decreases the functional value,
-      % Save the final iterate and bail out of the gradient descent process.
-      if sub_iter >= num_sub_iterations
-        fprintf('Failed to find appropriate step size in %d sub-iterations.\n', sub_iter);
-        fprintf('Functional value J_{%d} == %2.5f.\n', k, J_curr);
-        fprintf('||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true_values)/norm(s_true_values));
-        fprintf('||a_k-a_true||/||a_true||=%2.5f.\n', norm(a_new-a_true_values)/norm(a_true_values));
-        disp('s_final: ');
-        disp(s_new);
-
-        s_values(k, :) = s_new; s_values = s_values(1:k, :);
-        a_values(k, :) = a_new; a_values = a_values(1:k, :);
-        J_values = J_values(1:k);
-        return
+        J_values(k) = J_curr; J_values = J_values(1:k);
+        s_old = s_new; s_values(k, :) = s_old;
+        a_old = a_new; a_values(k, :) = a_old;
+        break # Break out of sub-iteration loop
       end
 
       % Reduce step size and try again. This step size selection method is
@@ -211,3 +181,9 @@ function [J_values, s_values, a_values] = optimization(...
   end % End main loop
 
 end % optimization function
+
+function [] = reportInLoop(k, J_curr, s_new, s_true_values, a_new, a_true_values)
+  fprintf('Functional value J_{%d} == %2.5f.\n', k, J_curr);
+  fprintf('||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true_values)/norm(s_true_values));
+  fprintf('||a_k-a_true||/||a_true||=%2.5f.\n', norm(a_new-a_true_values)/norm(a_true_values));
+end # reportInLoop function
