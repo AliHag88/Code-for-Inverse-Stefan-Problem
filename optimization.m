@@ -4,7 +4,7 @@ function [J_values, s_values, a_values] = optimization(...
     initial_data_parameter_s, initial_data_parameter_a, ...
     sobolev_preconditioning_s, sobolev_preconditioning_a, ...
     reconstruct_s, reconstruct_a, do_visualization)
-  % optimization: Run ISP example
+  % optimization runs complete ISP example, parameterized by input arguments
   % Input Arguments:
   %    - len_xmesh: Number of space grid points. Default: 20
   %    - len_tmesh: Number of time grid points. Default: 20
@@ -26,8 +26,8 @@ function [J_values, s_values, a_values] = optimization(...
   %    - J_values: Vector of functional values at each gradient iteration.
   %    - s_values: Vector of controls x=s_k(t) at each gradient iteration.
   %    - a_values: Vector of controls a_k(t) at each gradient iteration.
-  % Note that for the last two output arguments, columns correspond to the iteration number
-  % and each row is a separate control vector.
+  % Note that for the last two output arguments, columns correspond to the
+  % iteration number and each row is a separate control vector.
 
   % Call code to set default values of parameters.
   optimization_parameter_defaults;
@@ -35,8 +35,7 @@ function [J_values, s_values, a_values] = optimization(...
   % Counter for number of iterations
   k = 1;
 
-  % Vector of cost functional values. NaNs are used as a
-  % placeholder.
+  % Vector of cost functional values. NaNs are used as a placeholder.
   J_values = zeros(num_iterations + 1, 1) * NaN;
 
   % Vector of boundary curve iterates
@@ -88,7 +87,11 @@ function [J_values, s_values, a_values] = optimization(...
     end
 
     % Calculate update direction vector s_update
-    s_update, s_update_T = grad_s(tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star);
+    s_update, s_update_T = grad_s( ...
+                                   tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, ...
+                                   psi_x_S, psi_t_S, psi_S, ...
+                                   u_S, au_xx_S, s_star ...
+                                 );
     % Only normalize if the update vector has numerically nonzero norm.
     if norm(s_update) > norm_update_threshold
         s_update = s_update / norm(s_update);
@@ -102,10 +105,16 @@ function [J_values, s_values, a_values] = optimization(...
     end
 
     % Preconditioning for s(t) gradient
-    s_update = precond(s_precond_mode, sobolev_preconditioning_s, tmesh, s_update, s_update_T);
+    s_update = precond( ...
+                        s_precond_mode, sobolev_preconditioning_s, tmesh, ...
+                        s_update, s_update_T ...
+                      );
 
     % Preconditioning for a(t) gradient
-    a_update = precond(a_precond_mode, sobolev_preconditioning_a, tmesh, a_update);
+    a_update = precond( ...
+                        a_precond_mode, sobolev_preconditioning_a, tmesh, ...
+                        a_update ...
+                      );
 
     curr_step_size = max_step_size;
     sub_iter = 1;
@@ -131,7 +140,8 @@ function [J_values, s_values, a_values] = optimization(...
       % If svals or avals becomes to small, reduce the step size and try again.
       % This has to be completed _before_ calculating the functional in order to
       % ensure the functional is well defined.
-      if any(s_new < svals_minimum_threshold) || any(a_new < avals_minimum_threshold)
+      if any(s_new < svals_minimum_threshold) ...
+         || any(a_new < avals_minimum_threshold)
         curr_step_size = curr_step_size / 2;
         sub_iter = sub_iter + 1;
         continue % Return to top of sub-iteration loop
@@ -164,7 +174,11 @@ function [J_values, s_values, a_values] = optimization(...
     % Do visualization if selected
     if do_visualization
         pause_time = 0; % Units for pause_time are seconds
-        visualization(xmesh, tmesh, s_old, a_old, u, k, J_values, pause_time, initial_data_parameter_s, initial_data_parameter_a);
+        visualization( ...
+                       xmesh, tmesh, s_old, a_old, u, k, ...
+                       J_values, pause_time, ...
+                       initial_data_parameter_s, initial_data_parameter_a ...
+                     );
         drawnow();
     end
 
