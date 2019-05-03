@@ -1,4 +1,4 @@
-function [] = plot_gradientQuality(generate_data, generate_plots, Nx, Nt, n_fd_epsilon)
+function [] = plot_gradientQuality(generate_data, generate_plots, len_xmesh, len_tmesh, n_fd_epsilon)
   % Call same setup code as in optimization script
   % (any duplicated variables will be overwritten later.
   optimization_parameter_defaults;
@@ -10,14 +10,14 @@ function [] = plot_gradientQuality(generate_data, generate_plots, Nx, Nt, n_fd_e
   if ~exist('generate_plots', 'var')
     generate_plots = false;
   end
-                                % Number of iterations to test
+  % Number of iterations to test
   if ~exist('n_fd_epsilon', 'var')
     n_fd_epsilon = 20;
   end
 
   % Compute filename corresponding to this example
-  output_filename = sprintf('kappa_Nx%d_Nt%d.csv', Nx, Nt);
-  plot_filename = sprintf('kappa_Nx%d_Nt%d.pdf', Nx, Nt);
+  output_filename = sprintf('kappa_Nx%d_Nt%d.csv', len_xmesh, len_tmesh);
+  plot_filename = sprintf('kappa_Nx%d_Nt%d.pdf', len_xmesh, len_tmesh);
 
   % Headers and file format for output
   output_headers = ['fd_epsilon,kappa_s,kappa_s_precond,kappa_a,kappa_a_precond,' ...
@@ -47,12 +47,13 @@ function [] = plot_gradientQuality(generate_data, generate_plots, Nx, Nt, n_fd_e
     for i = 1:length(fd_epsilon_values)
       fd_epsilon_curr = fd_epsilon_values(i);
       try
-        [kappa_s(i), kappa_s_precond(i), kappa_a(i), kappa_a_precond(i)] = ...
-        gradientQuality(Nx, Nt, fd_epsilon_curr, ...
+        [kappa_s_precond(i), kappa_s(i), kappa_a_precond(i), kappa_a(i)] = ...
+        gradientQuality(len_xmesh, len_tmesh, fd_epsilon_curr, ...
                         initial_data_parameter_s, initial_data_parameter_a, ...
-                        regularization_s, regularization_a);
-      catch ME # Fail with grace (by ignoring the issue.)
-        disp(ME)
+                        sobolev_preconditioning_s, sobolev_preconditioning_a);
+      catch ME % Fail with grace (by ignoring the issue.)
+          warning('Error in optimization at i=%d (fd_epsilon_curr=%0.16f):', i, fd_epsilon_curr);
+          disp(ME)
       end
 
       % Output to file
@@ -110,14 +111,14 @@ function [] = plot_gradientQuality(generate_data, generate_plots, Nx, Nt, n_fd_e
     plot(fd_epsilon_values, kappa_s);
     xlabel('\epsilon');
     ylabel('\kappa_s');
-    title(sprintf('\\kappa_s, Precond:False', Nx, Nt));
+    title(sprintf('\\kappa_s, Precond:False', len_xmesh, len_tmesh));
 
     % kappa_s_precond
     subplot(2,2,2);
     plot(fd_epsilon_values, kappa_s_precond);
     xlabel('\epsilon');
     ylabel('\kappa_s');
-    title(sprintf('\\kappa_s, Precond:True', Nx, Nt));
+    title(sprintf('\\kappa_s, Precond:True', len_xmesh, len_tmesh));
 
     %% Plots for a(t)
     % kappa_a
@@ -125,19 +126,20 @@ function [] = plot_gradientQuality(generate_data, generate_plots, Nx, Nt, n_fd_e
     plot(fd_epsilon_values, kappa_a);
     xlabel('\epsilon');
     ylabel('\kappa_a');
-    title(sprintf('\\kappa_a, Precond:False', Nx, Nt));
+    title(sprintf('\\kappa_a, Precond:False', len_xmesh, len_tmesh));
 
     % kappa_a_precond
     subplot(2,2,4);
     plot(fd_epsilon_values, kappa_a_precond);
     xlabel('\epsilon');
     ylabel('\kappa_a');
-    title(sprintf('\\kappa_a, Precond:True', Nx, Nt));
+    title(sprintf('\\kappa_a, Precond:True', len_xmesh, len_tmesh));
 
+    % Add overall plot title
     if exist('sgtitle')
-      sgtitle(sprintf('Nx=%d,Nt=%d', Nx, Nt));
+      sgtitle(sprintf('Nx=%d,Nt=%d', len_xmesh, len_tmesh));
     else
-      title(sprintf('Nx=%d,Nt=%d', Nx, Nt));
+      title(sprintf('Nx=%d,Nt=%d', len_xmesh, len_tmesh));
     end
     saveas(gcf, plot_filename, 'pdf');
   end % if generate_plots

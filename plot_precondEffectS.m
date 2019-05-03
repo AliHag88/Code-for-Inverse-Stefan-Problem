@@ -1,11 +1,11 @@
 function [] = plot_precondEffectS( generate_data, generate_plots, ...
-                                   len_xmesh, len_tmesh, n_regularization_s_values, ...
+                                   len_xmesh, len_tmesh, n_sobolev_preconditioning_s_values, ...
                                    tolerance, num_iterations, num_sub_iterations, use_synthetic_data, ...
                                    initial_data_parameter_s, initial_data_parameter_a, ...
                                    sobolev_preconditioning_a ...
                                  )
   % Call same setup code as in optimization script
-  % (any duplicated variables will be overwritten later.
+  % (any duplicated variables will be overwritten later.)
   optimization_parameter_defaults;
 
   % Set more default values for parameters
@@ -67,8 +67,8 @@ function [] = plot_precondEffectS( generate_data, generate_plots, ...
       dS_values_final(i) = sqrt(trapz(tmesh, (svals(end, :) - s_true_values).^2));
       dA_values_final(i) = sqrt(trapz(tmesh, (avals(end, :) - a_true_values).^2));
 
-      catch ME # Fail gracefully by ignoring the error
-        warning(sprintf('Error in optimization at i=%d (sobolev_preconditioning_s=%0.16f):', i, sobolev_preconditioning_s));
+      catch ME % Fail gracefully by ignoring the error
+        warning('Error in optimization at i=%d (sobolev_preconditioning_s=%0.16f):', i, sobolev_preconditioning_s);
         disp(ME)
       end
 

@@ -27,7 +27,7 @@ function [max_step_size, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = i
   s_ini = @(t) initial_data_parameter_s * s_linear(t) + (1 - initial_data_parameter_s) * s_true(t);
 
   % Initial guess for a(t)
-  a_ini = @(t) a_true(t) + (4/(t_final - t_initial)) * initial_data_parameter_a * ;
+  a_ini = @(t) a_true(t) + (4/(t_final - t_initial)) * initial_data_parameter_a * t .* (t_final - t);
 
   % Use synthetic data to set measurements
   if use_synthetic_data

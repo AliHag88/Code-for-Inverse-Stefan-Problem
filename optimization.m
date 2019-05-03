@@ -82,12 +82,12 @@ function [J_values, s_values, a_values] = optimization(...
     k = k + 1;
     if any(isnan(psi_t_S)) || any(isnan(psi_x_S)) || any(isnan(psi_S)) ...
           || any(isnan(au_xx_S)) || any(isnan(u_x_S)) || any(isnan(u_S))
-      fprintf('Invalid state or adjoint at step %d.\n', k);
+      fprintf('Invalid state or adjoint at step %d.\n-----\n', k);
       break
     end
 
     % Calculate update direction vector s_update
-    s_update, s_update_T = grad_s( ...
+    [s_update, s_update_T] = grad_s( ...
                                    tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, ...
                                    psi_x_S, psi_t_S, psi_S, ...
                                    u_S, au_xx_S, s_star ...
@@ -127,11 +127,11 @@ function [J_values, s_values, a_values] = optimization(...
       % If we can't find a step size that decreases the functional value,
       % Save the final iterate and bail out of the gradient descent process.
       if sub_iter > num_sub_iterations
-        fprintf('Failed to find appropriate step size in %d sub-iterations.\n', sub_iter);
+        fprintf('Failed to find appropriate step size in %d sub-iterations.\n-----\n', sub_iter);
         reportInLoop(k, J_curr, s_new, s_true_values, a_new, a_true_values);
 
         % Save current values and "trim" output arrays to size
-        J_values = J_values(1:k);
+        J_values(k) = J_curr; J_values = J_values(1:k);
         s_values(k, :) = s_new; s_values = s_values(1:k, :);
         a_values(k, :) = a_new; a_values = a_values(1:k, :);
         return % Exit from optimization function
@@ -162,7 +162,7 @@ function [J_values, s_values, a_values] = optimization(...
         J_values(k) = J_curr; J_values = J_values(1:k);
         s_old = s_new; s_values(k, :) = s_old;
         a_old = a_new; a_values(k, :) = a_old;
-        break # Break out of sub-iteration loop
+        break % Break out of sub-iteration loop
       end
 
       % Reduce step size and try again. This step size selection method is
@@ -184,7 +184,7 @@ function [J_values, s_values, a_values] = optimization(...
 
     % Check stopping criteria
     if abs(J_values(k) - J_values(k-1)) < tolerance * J_values(k)% && abs(a_new - a_old) < tolerance * a_new
-        fprintf('Iterations stationary (in relative error) at k=%d with tolerance %2.5f.\n', k, tolerance);
+        fprintf('Iterations stationary (in relative error) at k=%d with tolerance %2.5f.\n-----\n', k, tolerance);
         J_values = J_values(1:k);
         break
     end
@@ -200,4 +200,4 @@ function [] = reportInLoop(k, J_curr, s_new, s_true_values, a_new, a_true_values
   fprintf('Functional value J_{%d} == %2.5f.\n', k, J_curr);
   fprintf('||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true_values)/norm(s_true_values));
   fprintf('||a_k-a_true||/||a_true||=%2.5f.\n', norm(a_new-a_true_values)/norm(a_true_values));
-end # reportInLoop function
+end % reportInLoop function
