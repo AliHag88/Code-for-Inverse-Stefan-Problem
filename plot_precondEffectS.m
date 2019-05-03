@@ -13,33 +13,32 @@ function [] = plot_precondEffectS( generate_data, generate_plots, ...
     generate_data = true;
   end
   if ~exist('generate_plots', 'var')
-    generate_plots = true;
-  end
-  if ~exist('n_regularization_s_values', 'var')
-    n_sobolev_preconditioning_s_values = 50;
-  end
-   if ~exist('n_regularization_a_values', 'var')
-    n_sobolev_preconditioning_a_values = 50;
+    generate_plots = false;
   end
 
- 
+  if ~exist('n_sobolev_preconditioning_s_values', 'var')
+    n_sobolev_preconditioning_s_values = 10;
+  end
 
   % Compute filename corresponding to this example
   output_filename = sprintf('precondEffectS_Nx%d_Nt%d.csv', len_xmesh, len_tmesh);
+  plot_filename = sprintf('precondEffectS_Nx%d_Nt%d.csv', len_xmesh, len_tmesh);
+  
   % Headers and file format for output
-  output_headers = 'sobolev_preconditioning_a,J_final,||s_{final}-s_{true}||,||a_{final}-a_{true}||';
+  output_headers = 'sobolev_preconditioning_s,J_final,||s_{final}-s_{true}||,||a_{final}-a_{true}||\n';
+
   output_format = '%.16f,';
-  output_size = [1, 3];
+  output_size = [1, 4];
 
   % Generate example data
   if generate_data
     % Choose range of sobolev_preconditioning_s values
-    sobolev_preconditioning_a_values = linspace(1e-8, 1, n_sobolev_preconditioning_a_values)';
+    sobolev_preconditioning_s_values = linspace(1e-8, 1, n_sobolev_preconditioning_s_values)';
 
     % Initialize storage for output data
-    J_values_final = zeros(size(sobolev_preconditioning_a_values))*NaN;
-    dS_values_final = zeros(size(sobolev_preconditioning_a_values))*NaN;
-    dA_values_final = zeros(size(sobolev_preconditioning_a_values))*NaN;
+    J_values_final = zeros(size(sobolev_preconditioning_s_values))*NaN;
+    dS_values_final = zeros(size(sobolev_preconditioning_s_values))*NaN;
+    dA_values_final = zeros(size(sobolev_preconditioning_s_values))*NaN;
 
     % Discretization for both for forward and adjoint problem
     tmesh = linspace(0, t_final, len_tmesh)'; % Time discretization (column)
@@ -56,8 +55,8 @@ function [] = plot_precondEffectS( generate_data, generate_plots, ...
 
     % Output headers to file
     fprintf(fileID, output_headers);
-    for i = 1:n_sobolev_preconditioning_a_values
-      sobolev_preconditioning_a = sobolev_preconditioning_a_values(i);
+    for i = 1:n_sobolev_preconditioning_s_values
+      sobolev_preconditioning_s = sobolev_preconditioning_s_values(i);
       try
         [jvals, svals, avals] = ...
           optimization( ...
@@ -79,7 +78,7 @@ function [] = plot_precondEffectS( generate_data, generate_plots, ...
 
       % Output to file
       fprintf(fileID, [repmat(output_format, output_size) '\n'], ...
-              sobolev_preconditioning_a_values(i), ...
+              sobolev_preconditioning_s_values(i), ...
               J_values_final(i), ...
               dS_values_final(i), ...
               dA_values_final(i) ...
@@ -100,7 +99,7 @@ function [] = plot_precondEffectS( generate_data, generate_plots, ...
         fgetl(fileID); % Skip header
 
         % Initialize storage
-        sobolev_preconditioning_a_values = [];
+        sobolev_preconditioning_s_values = [];
         J_values_final = [];
         dS_values_final = [];
         dA_values_final = [];
@@ -113,7 +112,7 @@ function [] = plot_precondEffectS( generate_data, generate_plots, ...
           end
           % Parse output line
           values_tmp = sscanf(tline, '%f,', output_size);
-          sobolev_preconditioning_a_values(end + 1) = values_tmp(1);
+          sobolev_preconditioning_s_values(end + 1) = values_tmp(1);
           J_values_final(end + 1) = values_tmp(2);
           dS_values_final(end + 1) = values_tmp(3);
           dA_values_final(end + 1) = values_tmp(4);
@@ -123,20 +122,28 @@ function [] = plot_precondEffectS( generate_data, generate_plots, ...
       %% Create plots
       % J(v_{final})
       subplot(3,1,1)
-      plot(sobolev_preconditioning_a_values, J_values_final);
+      plot(sobolev_preconditioning_s_values, J_values_final);
       xlabel('l_s')
       ylabel('J(v_{final})')
 
       % ||s_{final} - s_{true}||
       subplot(3,1,2)
-      plot(sobolev_preconditioning_a_values, dS_values_final);
+      plot(sobolev_preconditioning_s_values, dS_values_final);
       xlabel('l_s')
       ylabel('||s_{final}-s_{true}||_{L_2}')
 
       % ||a_{final} - a_{true}||
       subplot(3,1,3)
-      plot(sobolev_preconditioning_a_values, dA_values_final);
+      plot(sobolev_preconditioning_s_values, dA_values_final);
       xlabel('l_s')
       ylabel('||a_{final}-a_{true}||_{L_2}')
+      
+      % Add overall plot title
+    if exist('sgtitle')
+      sgtitle(sprintf('Nx=%d,Nt=%d', len_xmesh, len_tmesh));
+    else
+      title(sprintf('Nx=%d,Nt=%d', len_xmesh, len_tmesh));
+    end
+    saveas(gcf, plot_filename, 'pdf');
   end % if generate_plots
 end

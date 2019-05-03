@@ -67,10 +67,11 @@ function [J_values, s_values, a_values] = optimization(...
   a_values(k, :) = a_old;
 
   % Calculate solution of forward problem and functional value at initial approach
-  [au_xx_S, u_x_S, u_S, u_T, u, J_values(k)] = ...
+  [au_xx_S, u_x_S, u_S, u_T, u, J_curr] = ...
     Functional(xmesh, tmesh, s_old, a_old, g, u_true_0, s_star, w_meas, mu_meas);
 
-  fprintf('Initial functional value: %2.5f.\n', J_values(k));
+  fprintf('Initial functional value: %2.5f.\n', J_curr);
+  J_values(k) = J_curr;
 
   % Calculate solution of adjoint problem
   [psi_t_S, psi_x_S, psi_S, psi] = ...

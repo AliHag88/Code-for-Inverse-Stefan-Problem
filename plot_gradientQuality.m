@@ -111,14 +111,14 @@ function [] = plot_gradientQuality(generate_data, generate_plots, len_xmesh, len
     plot(fd_epsilon_values, kappa_s);
     xlabel('\epsilon');
     ylabel('\kappa_s');
-    title(sprintf('\\kappa_s, Precond:False', len_xmesh, len_tmesh));
+    title('\kappa_s, Precond:False');
 
     % kappa_s_precond
     subplot(2,2,2);
     plot(fd_epsilon_values, kappa_s_precond);
     xlabel('\epsilon');
     ylabel('\kappa_s');
-    title(sprintf('\\kappa_s, Precond:True', len_xmesh, len_tmesh));
+    title('\kappa_s, Precond:True');
 
     %% Plots for a(t)
     % kappa_a
@@ -126,14 +126,14 @@ function [] = plot_gradientQuality(generate_data, generate_plots, len_xmesh, len
     plot(fd_epsilon_values, kappa_a);
     xlabel('\epsilon');
     ylabel('\kappa_a');
-    title(sprintf('\\kappa_a, Precond:False', len_xmesh, len_tmesh));
+    title('\kappa_a, Precond:False');
 
     % kappa_a_precond
     subplot(2,2,4);
     plot(fd_epsilon_values, kappa_a_precond);
     xlabel('\epsilon');
     ylabel('\kappa_a');
-    title(sprintf('\\kappa_a, Precond:True', len_xmesh, len_tmesh));
+    title('\kappa_a, Precond:True');
 
     % Add overall plot title
     if exist('sgtitle')
