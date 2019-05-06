@@ -122,7 +122,7 @@ function [J_values, s_values, a_values] = optimization(...
       % Take trial step along direction vector s_update and a_update
       s_new = s_old - reconstruct_s * curr_step_size * s_update;
 
-      a_new = a_old - reconstruct_a * curr_a_step_size * a_update;
+      a_new = a_old - reconstruct_a * curr_step_size * a_update;
 
       % If we can't find a step size that decreases the functional value,
       % Save the final iterate and bail out of the gradient descent process.
