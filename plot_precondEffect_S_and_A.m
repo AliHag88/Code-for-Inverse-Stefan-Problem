@@ -1,28 +1,23 @@
-function [] = plot_precondEffectS_and_A(len_xmesh, len_tmesh, n_sobolev_preconditioning_s_values,...
-                                   n_sobolev_preconditioning_a_values,tolerance, num_iterations,...
+function [] = plot_precondEffect_S_and_A(len_xmesh, len_tmesh,tolerance, num_iterations,...
                                    num_sub_iterations, use_synthetic_data,initial_data_parameter_s,...
-                                   initial_data_parameter_a,sobolev_preconditioning_a,...
-                                   sobolev_preconditioning_s)
+                                   initial_data_parameter_a)
   % Call same setup code as in optimization script
   % (any duplicated variables will be overwritten later.)
   optimization_parameter_defaults;
 
   % Set more default values for parameters
-    if ~exist('n_regularization_s_values', 'var')
-    n_sobolev_preconditioning_s_values = 2;
-  end
-   if ~exist('n_regularization_a_values', 'var')
-    n_sobolev_preconditioning_a_values = 2;
-  end
-
+  
+n_sobolev_preconditioning_s_values = 10;
+n_sobolev_preconditioning_a_values = 10;
+  
 
   % Endpoints of Interval for preconditioning parameter for a(t) and s(t)
  
-  a1=0.1;  % left endpoint or l_a search
-  a2=1;  % right endpoint or l_a search
+  a1=0.005;  % left endpoint or l_a search
+  a2=0.08;  % right endpoint or l_a search
   
-  s1=0.1;  % left endpoint for l_s search
-  s2=1;  % right endpoint for l_s search
+  s1=0.01;  % left endpoint for l_s search
+  s2=0.09;  % right endpoint for l_s search
    
 
 
@@ -51,7 +46,7 @@ function [] = plot_precondEffectS_and_A(len_xmesh, len_tmesh, n_sobolev_precondi
     
     for i = 2:n_sobolev_preconditioning_a_values+1
       sobolev_preconditioning_a = sobolev_preconditioning_a_values(i-1);
-       for j = 2:n_sobolev_preconditioning_a_values+1
+       for j = 2:n_sobolev_preconditioning_s_values+1
          sobolev_preconditioning_s = sobolev_preconditioning_s_values(j-1);
      
         [jvals, svals, avals] = ...
@@ -66,7 +61,7 @@ function [] = plot_precondEffectS_and_A(len_xmesh, len_tmesh, n_sobolev_precondi
  J_values_final(i,j) = jvals(end);
  dAS_values_final(i,j) = sqrt(trapz(tmesh, (svals(end, :) - s_true_values).^2))/sqrt(trapz(tmesh, (s_true_values).^2))+...
  sqrt(trapz(tmesh, (avals(end, :) - a_true_values).^2))/sqrt(trapz(tmesh, (a_true_values).^2));   
-     end
+       end
     end  % Loop over sobolev_preconditioning_s_values
     
     % adding l_s and l_a vectors to the matrix 
