@@ -52,9 +52,6 @@ end
 % Set final moment (as in optimization.m code)
 t_final = 1;
 
-% If the norm of the update vector is below the threshold below, we will not normalize it.
-norm_update_threshold = 1e-10;
-
 % Gradient step size for a(t) is fixed
 % curr_a_step_size = 0.01;
 

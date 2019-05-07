@@ -93,17 +93,9 @@ function [J_values, s_values, a_values] = optimization(...
                                    psi_x_S, psi_t_S, psi_S, ...
                                    u_S, au_xx_S, s_star ...
                                  );
-    % Only normalize if the update vector has numerically nonzero norm.
-    if norm(s_update) > norm_update_threshold
-        s_update = s_update / norm(s_update);
-    end
 
     % Calculate update direction vector a_update
     a_update = grad_a(u,psi,tmesh,xmesh,s_old);
-    % Only normalize if the update vector has nonzero norm.
-    if norm(a_update) > norm_update_threshold
-        a_update = a_update / norm(a_update);
-    end
 
     % Preconditioning for s(t) gradient
     s_update = precond( ...

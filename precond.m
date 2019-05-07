@@ -7,7 +7,7 @@ function grad = precond(mode, L, tmesh, grad_t, varargin)
   % - tmesh is the time grid on which the problem is solved.
   % - L is the weight associated with precondition
   % - grad_t is the original gradient J(t)
-  % This function accepts a variable argument list: 
+  % This function accepts a variable argument list:
   % - If given 5 arguments, we assume that the 5th argument is J(T).
 
   if nargin == 5
@@ -21,9 +21,9 @@ function grad = precond(mode, L, tmesh, grad_t, varargin)
 
   % Switch BC setup as set by `mode`
   if mode == 1
-    bc_s = @(ya, yb) [ya(2), yb(2) - grad_final_moment];
+    bc_s = @(ya, yb) [ya(2), L^2*yb(2) - grad_final_moment];
   elseif mode == 2
-    bc_s = @(ya, yb) [ya(1), yb(2) - grad_final_moment];
+    bc_s = @(ya, yb) [ya(1), L^2*yb(2) - grad_final_moment];
   else
     error('Unsupported mode passed to precond script.');
   end

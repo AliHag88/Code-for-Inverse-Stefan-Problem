@@ -319,24 +319,24 @@ the forward problem vanishes.
 \subsection{Implementation of Gradient Formulae in MATLAB}
 The last step in the implementation is to write the gradient update formula in MATLAB notation.
 For the differential with respect to $x=s(t)$, we have
-\begin{gather*}
+\begin{gather}
   {\delta J}_{s}
   := \int_0^T \Big[2\beta_1\big(u - \mu\big)u_x + \psi \big(\chi_x - \gamma_x s'  - a (b u_x)_x \big)\Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   \\
   +
   \left[\beta_0\lnorm{u(s(T),T) - w(s(T))}^2 + 2 \beta_2 (s(T) - s_*)\right] {\Delta s}(T) 
-  - \int_0^T \big[\psi \gamma\big]_{x=s(t)} {\Delta s}'(t) \,dt
-\end{gather*}
+  - \int_0^T \big[\psi \gamma\big]_{x=s(t)} {\Delta s}'(t) \,dt\label{eq:gradient-wrt-s-original}
+\end{gather}
 Under the assumptions used to formulate ``reduced'' models above ($\gamma \equiv
 1$, $\chi \equiv 0$, $b\equiv 1$, $\beta_i \equiv 1$) we have
-\begin{gather*}
+\begin{gather}
   {\delta J}_{s}
   = \int_0^T \Big[2\big(u - \mu\big)u_x - \psi  a u_{xx} \Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
   \\
   +
   \left[\lnorm{u(s(T),T) - w(s(T))}^2 + 2 (s(T) - s_*)\right] {\Delta s}(T) 
-  - \int_0^T \psi(s(t),t) {\Delta s}'(t) \,dt
-\end{gather*}
+  - \int_0^T \psi(s(t),t) {\Delta s}'(t) \,dt\label{eq:gradient-wrt-s-reduced}
+\end{gather}
 Pursuing integration by parts with respect to time, it follows that the corresponding differential term is
 \begin{gather}
   % \int_0^T \Big[2\big(u - \mu\big)u_x - \psi  a u_{xx} \Big]_{x=s(t)} {\Delta s}(t)\,dt \nonumber
@@ -441,8 +441,8 @@ Reisz element $J_s$ of the gradient, which we refer to as \emph{preconditioning}
 This process is shown to be essential for the numerical results; without
 preconditioning, the original set of ``$L_2$'' gradients do not give a clear
 enough search direction for the gradient descent process.
-The geometric interpretation of this can be thought of as a mathematically motivated
-preconditioning or smoothing operation. 
+The this process can be thought of as a mathematically motivated preconditioning
+or smoothing operation.
 
 Since the gradient is used to derive the search direction in the gradient
 descent algorithm, one should require that the action of $J_s$ on the increment
@@ -507,7 +507,7 @@ which implies $J_s$ should satisfy
   \begin{cases}
     J_s(t) - \ell^2 J_s''(t) = \tilde{J}_s(t)
     \\
-    J_s'(T) = \tilde{\tilde{J}},\quad
+    \ell^2 J_s'(T) = \tilde{\tilde{J}},\quad
     % \\
     J_s'(0) = 0
   \end{cases}
@@ -542,7 +542,7 @@ Given that $s(0)=s_0$ is fixed, it is justified to instead solve
   \begin{cases}
   J_s(t) - \ell^2 J_s''(t) = \tilde{J}_s(t)
   \\
-  J_s'(T) = \tilde{\tilde{J}},\quad
+  \ell^2 J_s'(T) = \tilde{\tilde{J}},\quad
   % \\
   J_s(0) = 0
 \end{cases}\label{eq:gradient-s-precond}
@@ -555,13 +555,69 @@ $\tilde{J}_a$ should be
   \begin{cases}
   J_a(t) - \ell^2 J_a''(t) = \tilde{J}_a(t)\nonumber
   \\
-  J_a'(T) = 0,\quad
+  \ell^2 J_a'(T) = 0,\quad
   % \\
   J_a(0) = 0
   \end{cases}\label{eq:gradient-a-precond}
 \end{equation}
 As in the previous case, the Dirichlet condition at $x=0$ is justified by the
 lack of arbitrarity in $a(0)$ due to~\eqref{eq:control-set}.
+
+The transformation applied to the gradient with respect to $s(t)$ between
+eqs.~\eqref{eq:gradient-wrt-s-reduced} and~\eqref{eq:gradient-wrt-s} can be
+reformulated into this preconditioning step as well; note
+that~\eqref{eq:gradient-wrt-s-reduced} is of the form
+\begin{gather*}
+  {\delta J}_s
+  = \int_0^T \left[
+    J_1 {\Delta s} +
+    J_2 {\Delta s}' +
+    J_3 {\Delta s} \delta_T(t)
+  \right]
+  \,dt
+  \intertext{and hence we require}
+  \int_0^T \left[
+    J_1 {\Delta s} +
+    - J_2' {\Delta s} +
+    J_3 {\Delta s} \delta_T(t)
+  \right]
+  \,dt
+  =
+  \int_0^T \left[
+    J_s(t) {\Delta s}(t)
+    + \ell^2 J_s'(t) {\Delta s}'(t)
+  \right] \,dt
+  \\
+  % =\int_0^T \left[
+  %   J_s {\Delta s}
+  %   - \ell^2 J_s'' {\Delta s}
+  %   + \ell^2 J_s' {\Delta s} \delta_T
+  %   - \ell^2 J_s' {\Delta s} \delta_0
+  % \right] \,dt
+  % \\
+  =\int_0^T \left[
+    J_s {\Delta s}
+    - \ell^2 J_s'' {\Delta s}
+    + \ell^2 J_s' {\Delta s} \delta_T
+  \right] \,dt
+  \intertext{and hence}
+  0 = \int_0^T \left[
+    J_1 - J_2' - J_s + \ell^2 J_s''
+  \right] {\Delta s}
+  + \left[
+    J_3 - \ell^2 J_s'
+  \right] {\Delta s} \delta_T(t) \,dt
+\end{gather*}
+and hence we could solve the single problem
+\begin{equation}
+  \begin{cases}
+    \ell^2 J_s'' - J_s = J_1 - J_2'
+    \\
+    \ell^2 J_s'(T) = J_3
+    \\
+    J_s(0) = 0
+  \end{cases}
+\end{equation}
 
 Note that in order to solve these problems numerically, they are reformulated as
 a first order system; for example letting $y_1 = J_s(t)$, $y_2 = y_1'(t)$,
