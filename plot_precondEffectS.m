@@ -1,4 +1,4 @@
-function [e] = plot_precondEffectS( generate_data, generate_plots, ...
+function [] = plot_precondEffectS(generate_data, generate_plots, ...
                                    len_xmesh, len_tmesh, n_sobolev_preconditioning_s_values, ...
                                    tolerance, num_iterations, num_sub_iterations, use_synthetic_data, ...
                                    initial_data_parameter_s, initial_data_parameter_a, ...
@@ -15,23 +15,20 @@ function [e] = plot_precondEffectS( generate_data, generate_plots, ...
   if ~exist('generate_plots', 'var')
     generate_plots = false;
   end
-
   if ~exist('n_sobolev_preconditioning_s_values', 'var')
     n_sobolev_preconditioning_s_values = 10;
   end
 
   % Compute filename corresponding to this example
   output_filename = sprintf('precondEffectS_Nx%d_Nt%d.csv', len_xmesh, len_tmesh);
-  plot_filename = sprintf('precondEffectS_Nx%d_Nt%d.csv', len_xmesh, len_tmesh);
-  
+  plot_filename = sprintf('precondEffectS_Nx%d_Nt%d.pdf', len_xmesh, len_tmesh);
+
   % Headers and file format for output
   output_headers = 'sobolev_preconditioning_s,J_final,||s_{final}-s_{true}||,||a_{final}-a_{true}||\n';
 
   output_format = '%.16f,';
   output_size = [1, 4];
 
-  e = 0;
-  
   % Generate example data
   if generate_data
     % Choose range of sobolev_preconditioning_s values
@@ -59,7 +56,7 @@ function [e] = plot_precondEffectS( generate_data, generate_plots, ...
     fprintf(fileID, output_headers);
     for i = 1:n_sobolev_preconditioning_s_values
       sobolev_preconditioning_s = sobolev_preconditioning_s_values(i);
-      fprintf('lambda_s = %0.5f', sobolev_preconditioning_s);
+      fprintf('lambda_s = %0.5f\n', sobolev_preconditioning_s);
       try
         tic()
         [jvals, svals, avals] = ...
@@ -71,7 +68,7 @@ function [e] = plot_precondEffectS( generate_data, generate_plots, ...
                         reconstruct_s, reconstruct_a, ...
                         false);
 
-      fprintf('Optimization completed in %0.5f s', toc());
+      fprintf('Optimization completed in %0.5f s\n', toc());
       J_values_final(i) = jvals(end);
       dS_values_final(i) = sqrt(trapz(tmesh, (svals(end, :) - s_true_values).^2));
       dA_values_final(i) = sqrt(trapz(tmesh, (avals(end, :) - a_true_values).^2));
@@ -79,8 +76,10 @@ function [e] = plot_precondEffectS( generate_data, generate_plots, ...
       catch ME % Fail gracefully by ignoring the error
         warning('Error in optimization at i=%d (sobolev_preconditioning_s=%0.16f):', i, sobolev_preconditioning_s);
         disp(ME)
-        e=ME
-        rethrow(ME)
+        if strcmp(ME.identifier, 'MATLAB:bvp4c:SingJac')
+          warning('Preconditioning problem is singular.')
+          continue
+        end
       end
 
       % Output to file

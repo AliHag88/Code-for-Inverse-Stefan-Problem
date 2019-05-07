@@ -6,22 +6,22 @@ function [J_values, s_values, a_values] = optimization(...
     reconstruct_s, reconstruct_a, do_visualization)
   % optimization runs complete ISP example, parameterized by input arguments
   % Input Arguments:
-  %    - len_xmesh: Number of space grid points. Default: 20
-  %    - len_tmesh: Number of time grid points. Default: 20
-  %    - tolerance: Required error for stopping criteria. Default: 1e-5
-  %    - num_iterations: Number of gradient descent steps to take. Default: 200
-  %    - num_sub_iterations: Number of trial steps to take to find decreasing step. Default: 20
+  %    - len_xmesh: Number of space grid points.
+  %    - len_tmesh: Number of time grid points.
+  %    - tolerance: Required error for stopping criteria.
+  %    - num_iterations: Number of gradient descent steps to take.
+  %    - num_sub_iterations: Number of trial steps to take to find decreasing step.
   %    - use_synthetic_data: Set true to use measurements from PDE solver,
   %      or set to false to use measurements from given problem. Default: true
   %    - initial_data_parameter_{s,a}: Parameter passed into initial_setup
   %      to control how far initial approach is from analytic solution.
-  %      Default: 0 (s_initial == s_true or a_initial == a_true)
+  %      Values closer to zero give an initial approach closer to the
+  %      analytic solution.
   %    - regularization_{s,a}: Weight given to regularization term during
   %      gradient descent process.
   %    - reconstruct_{s,a}: Boolean values to select whether to reconstruct s
   %      and/or a. If false, the initial approach will be used at each iteration.
   %    - do_visualization: Set to true to emit visualizations during the optimization process.
-  %      Default: false
   % Output Arguments:
   %    - J_values: Vector of functional values at each gradient iteration.
   %    - s_values: Vector of controls x=s_k(t) at each gradient iteration.
@@ -56,7 +56,11 @@ function [J_values, s_values, a_values] = optimization(...
   a_true_values = a_true(tmesh);
 
   % Initial setup for solver (all tunable parameters should be set here)
-  [max_step_size, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = initial_setup(tmesh, xmesh, use_synthetic_data, initial_data_parameter_s, initial_data_parameter_a);
+  [max_step_size, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = ...
+    initial_setup( ...
+                   tmesh, xmesh, use_synthetic_data, ...
+                   initial_data_parameter_s, initial_data_parameter_a ...
+                 );
 
   % Initialize svals and avals
   s_old = s_ini(tmesh);
@@ -70,7 +74,6 @@ function [J_values, s_values, a_values] = optimization(...
   [au_xx_S, u_x_S, u_S, u_T, u, J_curr] = ...
     Functional(xmesh, tmesh, s_old, a_old, g, u_true_0, s_star, w_meas, mu_meas);
 
-  fprintf('Initial functional value: %2.5f.\n', J_curr);
   J_values(k) = J_curr;
 
   % Calculate solution of adjoint problem
@@ -80,7 +83,18 @@ function [J_values, s_values, a_values] = optimization(...
 
   % Main Optimization Loop
   while k <= num_iterations
+    fprintf('Before gradient calculation, ')
+    reportInLoop(k, J_curr, s_old, s_true_values, a_old, a_true_values);
+
+    % Increment iteration counter
     k = k + 1;
+
+    % Ensure "current" values of output are filled (with previous iteration's values)
+    J_values(k) = J_curr;
+    s_values(k, :) = s_old;
+    a_values(k, :) = a_old;
+
+    % Check for invalid output from previous solvers
     if any(isnan(psi_t_S)) || any(isnan(psi_x_S)) || any(isnan(psi_S)) ...
           || any(isnan(au_xx_S)) || any(isnan(u_x_S)) || any(isnan(u_S))
       fprintf('Invalid state or adjoint at step %d.\n-----\n', k);
@@ -109,6 +123,7 @@ function [J_values, s_values, a_values] = optimization(...
                         a_update ...
                       );
 
+    % Set current step size and counter for inner loop (sub-iteration)
     curr_step_size = max_step_size;
     sub_iter = 1;
     while true
@@ -123,10 +138,8 @@ function [J_values, s_values, a_values] = optimization(...
         fprintf('Failed to find appropriate step size in %d sub-iterations.\n-----\n', sub_iter);
         reportInLoop(k, J_curr, s_new, s_true_values, a_new, a_true_values);
 
-        % Save current values and "trim" output arrays to size
-        J_values(k) = J_curr; J_values = J_values(1:k);
-        s_values(k, :) = s_new; s_values = s_values(1:k, :);
-        a_values(k, :) = a_new; a_values = a_values(1:k, :);
+        % "trim" output arrays to size
+        [J_values, s_values, a_values] = trimOutput(k, J_values, s_values, a_values);
         return % Exit from optimization function
       end
 
@@ -152,14 +165,14 @@ function [J_values, s_values, a_values] = optimization(...
         fprintf('Found a decreasing step after %d sub-iterations.\n', sub_iter);
         reportInLoop(k, J_curr, s_new, s_true_values, a_new, a_true_values);
 
-        J_values(k) = J_curr; J_values = J_values(1:k);
+        J_values(k) = J_curr;
         s_old = s_new; s_values(k, :) = s_old;
         a_old = a_new; a_values(k, :) = a_old;
         break % Break out of sub-iteration loop
       end
 
       % Reduce step size and try again. This step size selection method is
-      % precisely the Armijo rule with bisection at each trial step.
+      % the Armijo rule with bisection at each trial step.
       curr_step_size = curr_step_size / 2;
       sub_iter = sub_iter + 1;
     end % While loop for sub step
@@ -176,9 +189,10 @@ function [J_values, s_values, a_values] = optimization(...
     end
 
     % Check stopping criteria
-    if abs(J_values(k) - J_values(k-1)) < tolerance * J_values(k)% && abs(a_new - a_old) < tolerance * a_new
-        fprintf('Iterations stationary (in relative error) at k=%d with tolerance %2.5f.\n-----\n', k, tolerance);
-        J_values = J_values(1:k);
+    if abs(J_values(k) - J_values(k-1)) < tolerance * J_values(k)
+        fprintf('Iterations stationary at k=%d with tolerance %2.5f.\n-----\n', k, tolerance);
+        % "trim" output arrays to size
+        [J_values, s_values, a_values] = trimOutput(k, J_values, s_values, a_values);
         break
     end
 
@@ -194,3 +208,11 @@ function [] = reportInLoop(k, J_curr, s_new, s_true_values, a_new, a_true_values
   fprintf('||s_k-s_true||/||s_true||=%2.5f.\n', norm(s_new-s_true_values)/norm(s_true_values));
   fprintf('||a_k-a_true||/||a_true||=%2.5f.\n', norm(a_new-a_true_values)/norm(a_true_values));
 end % reportInLoop function
+
+function [J_values, s_values, a_values] = trimOutput(k, J_values, s_values, a_values)
+  J_values = J_values(1:k);
+  s_values = s_values(1:k, :);
+  a_values = a_values(1:k, :);
+end
+
+

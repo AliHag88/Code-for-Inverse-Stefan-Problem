@@ -12,20 +12,23 @@ function [error_out_grad_s, error_out_precond_s] = test_grad_s(len_xmesh, len_tm
   if ~exist('generate_validation', 'var')
     generate_validation = false;
   end
-  if ~exist('generate_plot', 'var')
-    generate_plot = false;
-  end
-  if ~exist('L_s', 'var')
-    L_s = 0.6
-  end
-  if ~exist('s_precond_mode', 'var')
-    s_precond_mode = 2
-  end
   
   t_final = 1;
   use_synthetic_data = true;
   initial_data_parameter_s = 0.6;
   initial_data_parameter_a = 0.6;
+  if ~exist('generate_validation', 'var')
+      generate_validation = false;
+  end
+  if ~exist('generate_plot', 'var')
+      generate_plot = false;
+  end
+  if ~exist('L_s', 'var')
+    L_s = 0.6;
+  end
+  if ~exist('s_precond_mode', 'var')
+    s_precond_mode = 2;
+  end
   
   % Discretization for both for forward and adjoint problem
   xmesh = linspace(0, 1, len_xmesh);  % Space discretization (row)
@@ -33,7 +36,11 @@ function [error_out_grad_s, error_out_precond_s] = test_grad_s(len_xmesh, len_tm
   
   % First output argument is max_step_size (ignored). TODO: Move to end of argument
   % list.
-  [~, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = initial_setup(tmesh, xmesh, use_synthetic_data, initial_data_parameter_s, initial_data_parameter_a);
+  [~, u_true_0, mu_meas, w_meas, g, s_star, s_ini, a_ini] = ...
+      initial_setup(...
+        tmesh, xmesh, use_synthetic_data, ...
+        initial_data_parameter_s, initial_data_parameter_a ...
+      );
   
   % Initialize svals and avals
   s_old = s_ini(tmesh);
@@ -50,12 +57,10 @@ function [error_out_grad_s, error_out_precond_s] = test_grad_s(len_xmesh, len_tm
     Adjoint(xmesh, tmesh, s_old, a_old, u_T, w_meas, u_S, mu_meas);
   
   % Calculate update direction vector s_update
-  s_update = grad_s(tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star);
-  
-  s_update_before = s_update;
+  [s_update_before, s_update_before_T] = grad_s(tmesh, s_old, w_meas, u_T, mu_meas, u_x_S, psi_x_S, psi_t_S, psi_S, u_S, au_xx_S, s_star);
   
   % Preconditioning for s(t) gradient
-  s_update_after = precond(s_precond_mode, L_s, tmesh, s_update);
+  s_update_after = precond(s_precond_mode, L_s, tmesh, s_update_before, s_update_before_T);
   
   test_grad_s_datafile = 'test_grad_s.mat';
   
@@ -73,5 +78,12 @@ function [error_out_grad_s, error_out_precond_s] = test_grad_s(len_xmesh, len_tm
   
   error_out_grad_s = trapz(tmesh, (s_update_before - s_update_before_validated).^2);
   error_out_precond_s = trapz(tmesh, (s_update_after - s_update_after_validated).^2);
+  
+  if generate_plot
+      plot(tmesh, s_update_before, 'r-', tmesh, s_update_after, 'b-');
+      xlabel('t')
+      ylabel('s(t)')
+      legend({'No Precond.', 'Precond.'}, 'Location', 'best')
+  end
 end
 

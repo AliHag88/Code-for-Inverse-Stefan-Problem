@@ -13,13 +13,13 @@ end
 
 % Flags below change the optimization routine
 if ~exist('num_iterations', 'var')
-  num_iterations = 40;
+  num_iterations = 10;
 end
 if ~exist('num_sub_iterations', 'var')
   num_sub_iterations = 6;
 end
 if ~exist('do_visualization', 'var')
-  do_visualization = true;
+  do_visualization = false;
 end
 
 % See initial_setup.m for the following parameters
@@ -27,10 +27,10 @@ if ~exist('use_synthetic_data', 'var')
   use_synthetic_data = true;
 end
 if ~exist('initial_data_parameter_s', 'var')
-  initial_data_parameter_s = 0;
+  initial_data_parameter_s = 0.6;
 end
 if ~exist('initial_data_parameter_a', 'var')
-  initial_data_parameter_a = 0.1;
+  initial_data_parameter_a = 0.6;
 end
 
 % Sobolev preconditioning parameters
@@ -46,14 +46,12 @@ if ~exist('reconstruct_a', 'var')
   reconstruct_a = 1;
 end
 if ~exist('reconstruct_s', 'var')
-  reconstruct_s = 0;
+  reconstruct_s = 1;
 end
 
 % Set final moment (as in optimization.m code)
 t_final = 1;
 
-% Gradient step size for a(t) is fixed
-% curr_a_step_size = 0.01;
 
 % Thresholds for minimum values of s(t) and a(t)
 svals_minimum_threshold = 1e-4;

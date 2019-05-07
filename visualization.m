@@ -100,7 +100,7 @@ function visualization(xmesh, tmesh, svals, avals, u, k, J, pausetime, initial_d
   xlabel('Time t');
   ylabel('Value a(t)');
   title('Optimization Output, a(t)');
-  axis([min(tmesh), max(tmesh), 0, Inf]);
+  axis([min(tmesh), max(tmesh), -Inf, Inf]);
   hold off
   %% End plot of a_true, avals, and a_init
 
