@@ -30,7 +30,7 @@
 
 \begin{document}
 
-\title{Implementation of ISP}
+\title{ISP Implementation Notes}
 \author{Ali Haqverdiyev \and Jonathan Goldfarb}
 \institute{Department of Mathematical Sciences\\Florida Institute of
     Technology\\Melbourne, FL 32901}
@@ -430,13 +430,14 @@ but the differential of eq.~\eqref{eq:gradient-wrt-s} has the form
 \[
   {\delta J}_s = \int_0^T \tilde{J}_s(t) {\Delta s}(t) \,dt + \tilde{\tilde{J}} {\Delta s}(T)
 \]
-Note that the above functional \emph{is} formally a linear functional over
+Note also that the above functional \emph{is} formally a linear functional over
 $\scontrolspace{}$; functions in $\scontrolspace(0,T)$ are continuous, so the
 delta function is a member of the dual space.
 By Reisz representation formula, any such functional over $\scontrolspace$ can
 be written in the required form; what remains is to numerically approximate the
-Reisz element $J_s$ of the gradient, which we refer to as \emph{preconditioning}
+Reisz element $J_s$ of the gradient, which is referred to as \emph{preconditioning}
 (in particular, Sobolev preconditioning) the gradient.
+This technique is discussed in detail in the monograph~\cite{neuberger10}.
 
 This process is shown to be essential for the numerical results; without
 preconditioning, the original set of ``$L_2$'' gradients do not give a clear
@@ -499,15 +500,15 @@ the solution of the alternative equation
   \right]\,dt
   =\int_0^T \left[
     J_s(t) {\Delta s}(t)
-    + \ell^2 J_s'(t) {\Delta s}'(t)
+    + \ell J_s'(t) {\Delta s}'(t)
   \right] \,dt
 \]
 which implies $J_s$ should satisfy
 \begin{equation*}
   \begin{cases}
-    J_s(t) - \ell^2 J_s''(t) = \tilde{J}_s(t)
+    J_s(t) - \ell J_s''(t) = \tilde{J}_s(t)
     \\
-    \ell^2 J_s'(T) = \tilde{\tilde{J}},\quad
+    \ell J_s'(T) = \tilde{\tilde{J}},\quad
     % \\
     J_s'(0) = 0
   \end{cases}
@@ -515,7 +516,7 @@ which implies $J_s$ should satisfy
 Note that the formulation used to approximate the Reisz element in~\cite{abdulla18} would read
 \begin{equation*}
   \begin{cases}
-    J_s(t) - \ell^2 J_s''(t) = \tilde{J}_s(t) + \tilde{\tilde{J}}
+    J_s(t) - \ell J_s''(t) = \tilde{J}_s(t) + \tilde{\tilde{J}}
     \\
     J_s'(T) = 0,\quad
     % \\
@@ -540,9 +541,9 @@ required to that $J_s'(0)=0$.
 Given that $s(0)=s_0$ is fixed, it is justified to instead solve
 \begin{equation}
   \begin{cases}
-  J_s(t) - \ell^2 J_s''(t) = \tilde{J}_s(t)
+  J_s(t) - \ell J_s''(t) = \tilde{J}_s(t)
   \\
-  \ell^2 J_s'(T) = \tilde{\tilde{J}},\quad
+  \ell J_s'(T) = \tilde{\tilde{J}},\quad
   % \\
   J_s(0) = 0
 \end{cases}\label{eq:gradient-s-precond}
@@ -553,9 +554,9 @@ the preconditioned $(H_1)$ gradient $J_a$ and the original $(L_2)$ gradient
 $\tilde{J}_a$ should be
 \begin{equation}
   \begin{cases}
-  J_a(t) - \ell^2 J_a''(t) = \tilde{J}_a(t)\nonumber
+  J_a(t) - \ell J_a''(t) = \tilde{J}_a(t)\nonumber
   \\
-  \ell^2 J_a'(T) = 0,\quad
+  \ell J_a'(T) = 0,\quad
   % \\
   J_a(0) = 0
   \end{cases}\label{eq:gradient-a-precond}
@@ -585,35 +586,35 @@ that~\eqref{eq:gradient-wrt-s-reduced} is of the form
   =
   \int_0^T \left[
     J_s(t) {\Delta s}(t)
-    + \ell^2 J_s'(t) {\Delta s}'(t)
+    + \ell J_s'(t) {\Delta s}'(t)
   \right] \,dt
   \\
   % =\int_0^T \left[
   %   J_s {\Delta s}
-  %   - \ell^2 J_s'' {\Delta s}
-  %   + \ell^2 J_s' {\Delta s} \delta_T
-  %   - \ell^2 J_s' {\Delta s} \delta_0
+  %   - \ell J_s'' {\Delta s}
+  %   + \ell J_s' {\Delta s} \delta_T
+  %   - \ell J_s' {\Delta s} \delta_0
   % \right] \,dt
   % \\
   =\int_0^T \left[
     J_s {\Delta s}
-    - \ell^2 J_s'' {\Delta s}
-    + \ell^2 J_s' {\Delta s} \delta_T
+    - \ell J_s'' {\Delta s}
+    + \ell J_s' {\Delta s} \delta_T
   \right] \,dt
   \intertext{and hence}
   0 = \int_0^T \left[
-    J_1 - J_2' - J_s + \ell^2 J_s''
+    J_1 - J_2' - J_s + \ell J_s''
   \right] {\Delta s}
   + \left[
-    J_3 - \ell^2 J_s'
+    J_3 - \ell J_s'
   \right] {\Delta s} \delta_T(t) \,dt
 \end{gather*}
 and hence we could solve the single problem
 \begin{equation}
   \begin{cases}
-    \ell^2 J_s'' - J_s = J_1 - J_2'
+    \ell J_s'' - J_s = J_1 - J_2'
     \\
-    \ell^2 J_s'(T) = J_3
+    \ell J_s'(T) = J_3
     \\
     J_s(0) = 0
   \end{cases}
@@ -632,10 +633,10 @@ eq.~\eqref{eq:gradient-s-precond} becomes
     = \begin{bmatrix}
       y_2
       \\
-      \frac{y_1 - \tilde{J}_s(t)}{\ell^2}
+      \frac{y_1 - \tilde{J}_s(t)}{\ell}
     \end{bmatrix}
     \\
-    y_2(T) = \tilde{\tilde{J}}
+    \ell y_2(T) = \tilde{\tilde{J}}
     \\
     y_1(0) = 0
   \end{cases}
