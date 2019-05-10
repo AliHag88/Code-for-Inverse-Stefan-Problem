@@ -27,10 +27,10 @@ if ~exist('use_synthetic_data', 'var')
   use_synthetic_data = true;
 end
 if ~exist('initial_data_parameter_s', 'var')
-  initial_data_parameter_s = 0;
+  initial_data_parameter_s = 0.8;
 end
 if ~exist('initial_data_parameter_a', 'var')
-  initial_data_parameter_a = 0.1;
+  initial_data_parameter_a = 0;
 end
 
 % Sobolev preconditioning parameters
@@ -38,15 +38,15 @@ if ~exist('sobolev_preconditioning_s', 'var')
   sobolev_preconditioning_s = 0.05;
 end
 if ~exist('sobolev_preconditioning_a', 'var')
-  sobolev_preconditioning_a = 0.08;
+  sobolev_preconditioning_a = 0.5;
 end
 
 % Choose which controls to reconstruct during optimization process
 if ~exist('reconstruct_a', 'var')
-  reconstruct_a = 1;
+  reconstruct_a = 0;
 end
 if ~exist('reconstruct_s', 'var')
-  reconstruct_s = 0;
+  reconstruct_s = 1;
 end
 
 % Set final moment (as in optimization.m code)
